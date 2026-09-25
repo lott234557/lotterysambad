@@ -24,6 +24,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en-IN" className={`${jakarta.variable} ${jbmono.variable}`} suppressHydrationWarning>
       <head>
+      <head>
+  <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+  <script src="https://push.aplu.io/push-notify.js" async></script>
+</head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-dvh">{children}</body>
