@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   serverExternalPackages: ["sharp"],
-  outputFileTracingIncludes: { "/**": ["./src/fonts/og/**/*"] },
+  outputFileTracingIncludes: { "/**": ["./src/fonts/og/**/*", "./drizzle/**/*"] },
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },

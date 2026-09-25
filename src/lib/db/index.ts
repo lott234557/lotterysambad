@@ -29,6 +29,7 @@ function create(): DB {
       prepare: false, // required for Neon / pgbouncer pooled connections
       idle_timeout: 20,
       connect_timeout: 15,
+      onnotice: () => {},
     });
   g.__lspSql = client;
   const d = drizzle(client, { schema });
@@ -44,6 +45,12 @@ export const db: DB = new Proxy({} as DB, {
     return typeof v === "function" ? (v as (...a: unknown[]) => unknown).bind(d) : v;
   },
 });
+
+/** Raw postgres.js client (used for migrations / seeding). */
+export function getSql() {
+  if (!g.__lspSql) create();
+  return g.__lspSql!;
+}
 
 export const isBuildPhase = () => process.env.NEXT_PHASE === "phase-production-build";
 

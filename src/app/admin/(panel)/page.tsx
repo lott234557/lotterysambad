@@ -10,9 +10,13 @@ import { PageHeader, Panel, Badge } from "@/components/admin/ui";
 import { CopyField } from "@/components/admin/forms";
 import { ScrapeButton } from "@/components/admin/ScrapeButton";
 import { Backfill } from "@/components/admin/Backfill";
+import { RefreshSite } from "@/components/admin/RefreshSite";
+import { ensureSetup } from "@/lib/setup";
 import { Trophy, FileText, Files, Image as ImageIcon, Plus } from "lucide-react";
 
 export default async function Dashboard() {
+  // layout and page render in parallel – make sure tables exist before querying
+  await ensureSetup().catch(() => {});
   const today = todayIST();
   const [draws, counts, logs, s] = await Promise.all([
     getResultsForDate(today),
@@ -29,6 +33,7 @@ export default async function Dashboard() {
         desc={<>Today is <b>{fullDate(today)}</b> (IST). Scraper is {s.scraperEnabled ? <Badge tone="ok">enabled</Badge> : <Badge tone="live">disabled</Badge>}</>}
         actions={
           <>
+            <RefreshSite />
             <Link href="/admin/results/new" className="btn btn-gold !py-2 text-sm"><Plus className="size-4" /> Add result</Link>
             <Link href="/admin/articles/new" className="btn btn-ghost !py-2 text-sm"><Plus className="size-4" /> New article</Link>
           </>

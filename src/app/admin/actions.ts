@@ -27,12 +27,34 @@ export async function loginAction(_: ActionState, f: FormData): Promise<ActionSt
   await new Promise((r) => setTimeout(r, 400)); // slow down brute force
   if (!checkCredentials(u, p)) return { error: "Invalid username or password." };
   await createSession(u);
+  // Prepare the database (tables + default content) before the dashboard renders.
+  try {
+    const { ensureSetup } = await import("@/lib/setup");
+    await ensureSetup();
+  } catch (e) {
+    console.error("[setup]", (e as Error).message);
+  }
   redirect("/admin");
 }
 
 export async function logoutAction() {
   await destroySession();
   redirect("/admin/login");
+}
+
+/* ---------------- maintenance ---------------- */
+
+/** Make sure tables + default content exist, then rebuild every public page on next visit. */
+export async function refreshSiteAction(): Promise<ActionState> {
+  await requireAdmin();
+  try {
+    const { ensureSetup } = await import("@/lib/setup");
+    const r = await ensureSetup(true);
+    revalidateSite();
+    return { ok: true, message: `Website refreshed${r.inserted ? ` (${r.inserted} default items added)` : ""}.` };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }
 
 /* ---------------- scraping ---------------- */
