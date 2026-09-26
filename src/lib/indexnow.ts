@@ -1,5 +1,6 @@
 import "server-only";
 import { siteUrl } from "./settings";
+import { LOCALES, lp } from "./i18n/config";
 
 /** Notify Bing/Yandex (IndexNow) about new or updated URLs. */
 export async function pingIndexNow(key: string, paths: string[]) {
@@ -13,7 +14,8 @@ export async function pingIndexNow(key: string, paths: string[]) {
       host,
       key,
       keyLocation: `${base}/indexnow-key.txt`,
-      urlList: paths.map((p) => (p.startsWith("http") ? p : base + p)),
+      // every language version of each page
+      urlList: Array.from(new Set(paths.flatMap((p) => (p.startsWith("http") ? [p] : LOCALES.map((l) => base + lp(l, p)))))),
     }),
     signal: AbortSignal.timeout(8000),
   });

@@ -3,7 +3,10 @@ import { useState } from "react";
 import { Share2, Link2, Check, Send, MessageCircle } from "lucide-react";
 import { FacebookIcon as Facebook } from "./BrandIcons";
 
-export function ShareBar({ url, title }: { url: string; title: string }) {
+type ShareLabels = { copy: string; copied: string; share: string };
+const EN: ShareLabels = { copy: "Copy link", copied: "Copied", share: "Share" };
+
+export function ShareBar({ url, title, t = EN }: { url: string; title: string; t?: ShareLabels }) {
   const [copied, setCopied] = useState(false);
   const text = encodeURIComponent(`${title} ${url}`);
   const copy = async () => {
@@ -31,9 +34,9 @@ export function ShareBar({ url, title }: { url: string; title: string }) {
         <Facebook className="size-4" /> Facebook
       </a>
       <button type="button" onClick={copy} className={cls}>
-        {copied ? <Check className="size-4 text-ok" /> : <Link2 className="size-4" />} {copied ? "Copied" : "Copy link"}
+        {copied ? <Check className="size-4 text-ok" /> : <Link2 className="size-4" />} {copied ? t.copied : t.copy}
       </button>
-      <button type="button" onClick={native} className={`${cls} sm:hidden`} aria-label="Share">
+      <button type="button" onClick={native} className={`${cls} sm:hidden`} aria-label={t.share}>
         <Share2 className="size-4" />
       </button>
     </div>

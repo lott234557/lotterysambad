@@ -1,11 +1,11 @@
-import { SlotLivePage, slotMetadata } from "@/components/SlotLivePage";
+import { SlotLivePage, slotMetadata } from "@/views/result";
 
 export const revalidate = 1800;
 
 export function generateMetadata() {
-  return slotMetadata("1pm");
+  return slotMetadata("en", "1pm");
 }
 
 export default function Page() {
-  return <SlotLivePage slot="1pm" />;
+  return <SlotLivePage lang="en" slot="1pm" />;
 }

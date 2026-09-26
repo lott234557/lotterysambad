@@ -12,7 +12,7 @@ Premium, fast Lottery Sambad (Dear Lottery) results website with automatic scrap
 
 | Page | URL | Target keywords |
 | --- | --- | --- |
-| Home (today's 3 draws live, 7-day table, timings, FAQ) | `/` | lottery sambad, lottery sambad result today, lottery results |
+| Home (today's 3 draws live, stats, 7-day table, timings, series chart, all-India comparison table + charts, long-form content, FAQ) | `/` | lottery sambad, lottery sambad result today, lottery results, lottery fax |
 | 1 PM live result | `/lottery-sambad-1pm-result` | lottery sambad 1pm, 1 pm result, dear morning |
 | 6 PM live result | `/lottery-sambad-6pm-result` | 6 pm result, dear day |
 | 8 PM live result | `/lottery-sambad-8pm-result` | 8 pm result, dear night |
@@ -24,10 +24,13 @@ Premium, fast Lottery Sambad (Dear Lottery) results website with automatic scrap
 | 30-day chart | `/lottery-sambad-chart` | lottery sambad chart |
 | Draw schedule & prizes | `/lottery-sambad-draw-schedule` | dear lottery schedule |
 | Ticket checker | `/check-ticket` | check lottery ticket |
+| All Indian lotteries compared (Kerala, Punjab, West Bengal, Sikkim, Maharashtra, legal states, fax) | `/indian-lotteries` | kerala lottery vs lottery sambad, lotteries in india, lottery fax |
 | Guides (blog) | `/blog`, `/blog/[slug]` | |
 | Legal pages (editable) | `/privacy-policy`, `/disclaimer`, `/dmca`, `/content-policy`, `/terms-and-conditions`, `/about-us`, `/contact-us` | |
 
 Plus: real-time IST clock + next-draw countdown, dark mode, mobile bottom navigation, result in **text + image** (download button), "find my number" highlighter, share buttons, per-result OG images, JSON-LD (NewsArticle, FAQPage, BreadcrumbList, WebSite, Organization), `sitemap.xml`, `robots.txt`, `ads.txt`, `manifest.webmanifest`, favicon/app icons. Footer carries the small educational-purpose disclaimer.
+
+**Languages:** every page above except the blog and legal pages also exists in Hindi (`/hi/…`), Bengali (`/bn/…`) and Malayalam (`/ml/…`), e.g. `/hi/lottery-sambad-8pm-result`. On the first visit the site reads the browser language and opens the matching version automatically; the language button in the header remembers the reader's choice (cookie `lang`). Search engines get `hreflang` links on every page and in the sitemap, and bots are never redirected.
 
 Pages are static (ISR) and are re-generated **instantly** whenever the scraper saves a new result, so they load in milliseconds. While a draw is due, open pages poll a tiny cached status API and refresh themselves the moment the result is published.
 
@@ -71,7 +74,7 @@ git push -u origin main
 2. **Environment variables** (see `.env.example`): `DATABASE_URL`, `NEXT_PUBLIC_SITE_URL=https://lotterysambad.plus`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `AUTH_SECRET`, `CRON_SECRET`.
    Generate secrets with `openssl rand -hex 32`.
 3. *(Recommended)* Storage → **Create Blob store** → connect to the project (adds `BLOB_READ_WRITE_TOKEN`). Without it, images are stored in Postgres (fine to start; ~100 KB per image).
-4. Deploy. The `vercel-build` script runs the database migrations and creates the default legal pages automatically.
+4. Deploy. The build runs the database migrations and creates the default legal pages + 4 starter guides automatically (if anything is missing, log in to /admin and click **Refresh website** – it repairs the database and refreshes every page).
 5. Settings → Functions → set the function region to the **same region as your Neon database** (e.g. Singapore `sin1`) so database calls stay fast (optional but recommended).
 
 ### 4. Domain
@@ -83,7 +86,7 @@ Vercel → Project → Settings → Domains → add `lotterysambad.plus` (and `w
 3. Schedule: **every 1 minute** (or custom: minutes `*`, hours `12-22`, timezone **Asia/Kolkata**). Save.
 4. That's it — results now appear within ~1 minute of publication.
 
-> Vercel's own Cron on the free Hobby plan only runs once a day, which is why an external 1-minute pinger is used. On Vercel Pro you can instead add `{"path": "/api/cron/scrape", "schedule": "* * * * *"}` to `vercel.json`. An optional GitHub Actions fallback is in `.github/workflows/scrape-cron.yml`.
+> Vercel's own Cron on the free Hobby plan only runs once a day, which is why an external 1-minute pinger is used. On Vercel Pro you can instead add `{"path": "/api/cron/scrape", "schedule": "* * * * *"}` to `vercel.json`.
 
 ### 6. First run
 1. Open `https://lotterysambad.plus/admin`, sign in.
@@ -120,7 +123,13 @@ Useful endpoints:
 ## Project structure
 
 ```
-src/app/(site)/…         public pages (ISR)
+src/app/(site)/…         English public pages (ISR) – thin wrappers around src/views
+src/app/[slug]/…         /hi, /bn, /ml versions of the same pages (+ English CMS pages at /[slug])
+src/views/               page views + metadata builders shared by every language
+src/lib/i18n/            dict/en|hi|bn|ml.ts (all UI text), config.ts (locales, lp() link helper), lotteryText.ts
+src/lib/lotteries.ts     all-India lottery figures used by the comparison table and charts
+src/components/charts/   bar / column / timeline charts (HTML, hover tooltips, table view)
+src/proxy.ts             admin guard + browser-language redirect
 src/app/admin/…          admin dashboard + server actions (actions.ts)
 src/app/api/cron/…       scraper triggers
 src/app/media/[...key]   image server (DB or Blob) with 1-year immutable caching
@@ -131,6 +140,9 @@ scripts/                 migrate.mjs, default legal pages, parser tests, dev moc
 ```
 
 ## Notes
+- **Editing text / translations:** change `src/lib/i18n/dict/en.ts` and the same key in `hi.ts`, `bn.ts`, `ml.ts` (TypeScript refuses to build if a key is missing). Placeholders like `{date}` must stay; `**bold**` and `[link](/path)` work in most texts and links are sent to the right language automatically.
+- **All-India figures** (bumper prizes, ticket prices) live in `src/lib/lotteries.ts` (numbers) and `src/lib/i18n/lotteryText.ts` (wording) – update them when a state announces new prizes.
+- Admin-written articles, legal pages and result notes are shown as written (English). The footer about/disclaimer text is translated automatically unless you change it in Admin → Settings.
 - Neon free tier auto-suspends when idle; pages are static and the scraper only touches the DB inside draw windows, keeping usage low.
 - Prize amounts and weekly draw names are editable in Admin → Settings (verify with the official notification).
 - The site is informational only; keep the footer disclaimer and link users to the official gazette.

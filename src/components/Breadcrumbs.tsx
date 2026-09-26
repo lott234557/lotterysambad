@@ -2,9 +2,10 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { JsonLd } from "./JsonLd";
 import { siteUrl } from "@/lib/settings";
+import { getDict, lp, type Locale } from "@/lib/i18n";
 
-export function Breadcrumbs({ items, invert = true }: { items: { name: string; href?: string }[]; invert?: boolean }) {
-  const all = [{ name: "Home", href: "/" }, ...items];
+export function Breadcrumbs({ items, invert = true, lang = "en" }: { items: { name: string; href?: string }[]; invert?: boolean; lang?: Locale }) {
+  const all = [{ name: getDict(lang).common.home, href: lp(lang, "/") }, ...items];
   return (
     <>
       <nav aria-label="Breadcrumb" className={`text-[0.78rem] ${invert ? "text-white/70" : "text-muted"}`}>

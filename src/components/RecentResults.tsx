@@ -1,10 +1,12 @@
 import Link from "next/link";
 import type { Result } from "@/lib/db/schema";
-import { SLOT_META, type Slot } from "@/lib/draws";
-import { isoToDMY, shortDate, weekdayName } from "@/lib/time";
+import type { Slot } from "@/lib/draws";
+import { isoToDMY } from "@/lib/time";
+import { getDict, lp, shortDateL, weekdayL, type Locale } from "@/lib/i18n";
 
-export function RecentResults({ rows, title, showSlot = false }: { rows: Result[]; title: string; showSlot?: boolean }) {
+export function RecentResults({ rows, title, showSlot = false, lang = "en" }: { rows: Result[]; title: string; showSlot?: boolean; lang?: Locale }) {
   if (!rows.length) return null;
+  const t = getDict(lang);
   return (
     <section className="mt-12">
       <h2 className="section-title">{title}</h2>
@@ -12,28 +14,28 @@ export function RecentResults({ rows, title, showSlot = false }: { rows: Result[
         <table className="table-x min-w-[520px]">
           <thead>
             <tr>
-              <th>Date</th>
-              {showSlot && <th>Draw</th>}
-              <th>Draw Name</th>
-              <th>1st Prize</th>
-              <th className="text-right">Result</th>
+              <th>{t.common.date}</th>
+              {showSlot && <th>{t.common.draw}</th>}
+              <th>{t.common.drawName}</th>
+              <th>{t.common.firstPrize}</th>
+              <th className="text-right">{t.common.result}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
                 <td className="whitespace-nowrap">
-                  <b>{shortDate(r.drawDate)}</b>
-                  <div className="text-xs text-muted">{weekdayName(r.drawDate)}</div>
+                  <b>{shortDateL(t, r.drawDate)}</b>
+                  <div className="text-xs text-muted">{weekdayL(t, r.drawDate)}</div>
                 </td>
-                {showSlot && <td className="font-semibold">{SLOT_META[r.slot as Slot].label}</td>}
+                {showSlot && <td className="font-semibold">{t.slots[r.slot as Slot].label}</td>}
                 <td className="text-muted">{r.drawName}</td>
                 <td>
                   <span className="num rounded-lg bg-gold-soft px-2 py-1 font-extrabold">{r.firstPrize ?? "—"}</span>
                 </td>
                 <td className="text-right">
-                  <Link href={`/result/${isoToDMY(r.drawDate)}/${r.slot}`} className="font-bold text-brand-2 hover:underline">
-                    View
+                  <Link href={lp(lang, `/result/${isoToDMY(r.drawDate)}/${r.slot}`)} className="font-bold text-brand-2 hover:underline">
+                    {t.common.view}
                   </Link>
                 </td>
               </tr>

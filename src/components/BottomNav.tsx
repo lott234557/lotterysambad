@@ -2,17 +2,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { House, Sun, Sunset, Moon, CalendarDays } from "lucide-react";
+import { isActive } from "@/lib/nav";
 
-const ITEMS = [
-  { href: "/", label: "Home", Icon: House },
-  { href: "/lottery-sambad-1pm-result", label: "1 PM", Icon: Sun },
-  { href: "/lottery-sambad-6pm-result", label: "6 PM", Icon: Sunset },
-  { href: "/lottery-sambad-8pm-result", label: "8 PM", Icon: Moon },
-  { href: "/old-results", label: "Old", Icon: CalendarDays },
-];
+const ICONS = { home: House, sun: Sun, sunset: Sunset, moon: Moon, calendar: CalendarDays };
 
-export function BottomNav() {
+export function BottomNav({ items }: { items: { href: string; label: string; icon: keyof typeof ICONS }[] }) {
   const path = usePathname();
+  const home = items[0].href;
   return (
     <nav
       aria-label="Quick results"
@@ -20,15 +16,16 @@ export function BottomNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <ul className="mx-auto grid max-w-md grid-cols-5">
-        {ITEMS.map(({ href, label, Icon }) => {
-          const on = href === "/" ? path === "/" : path.startsWith(href);
+        {items.map(({ href, label, icon }) => {
+          const Icon = ICONS[icon];
+          const on = isActive(path, href, home);
           return (
             <li key={href}>
               <Link href={href} className={`flex flex-col items-center gap-0.5 py-2 text-[0.68rem] font-bold ${on ? "text-brand-2" : "text-muted"}`}>
                 <span className={`grid h-7 w-12 place-items-center rounded-full transition ${on ? "bg-gold text-[#1c1400]" : ""}`}>
                   <Icon className="size-[18px]" />
                 </span>
-                {label}
+                <span className="max-w-full truncate px-1">{label}</span>
               </Link>
             </li>
           );

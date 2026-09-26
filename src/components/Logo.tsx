@@ -30,9 +30,21 @@ export function LogoMark({ className = "size-9" }: { className?: string }) {
   );
 }
 
-export function Logo({ logoUrl, siteName, invert = false }: { logoUrl?: string; siteName: string; invert?: boolean }) {
+export function Logo({
+  logoUrl,
+  siteName,
+  invert = false,
+  href = "/",
+  live = "Live Results",
+}: {
+  logoUrl?: string;
+  siteName: string;
+  invert?: boolean;
+  href?: string;
+  live?: string;
+}) {
   return (
-    <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label={`${siteName} – Home`}>
+    <Link href={href} className="flex items-center gap-2.5 shrink-0" aria-label={`${siteName} – Home`}>
       {logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={logoUrl} alt={siteName} className="h-9 w-auto" />
@@ -47,7 +59,7 @@ export function Logo({ logoUrl, siteName, invert = false }: { logoUrl?: string; 
               <span className="rounded-md bg-gold px-1.5 py-[1px] text-[0.62rem] font-extrabold tracking-[0.18em] text-[#1c1400]">
                 PLUS
               </span>
-              <span className={`text-[0.66rem] font-semibold ${invert ? "text-white/60" : "text-muted"}`}>Live Results</span>
+              <span className={`text-[0.66rem] font-semibold ${invert ? "text-white/60" : "text-muted"}`}>{live}</span>
             </span>
           </span>
         </>

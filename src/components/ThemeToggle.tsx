@@ -1,7 +1,7 @@
 "use client";
 import { Moon, Sun } from "lucide-react";
 
-export function ThemeToggle({ className = "" }: { className?: string }) {
+export function ThemeToggle({ className = "", label = "Toggle dark mode" }: { className?: string; label?: string }) {
   const toggle = () => {
     const root = document.documentElement;
     const dark = !root.classList.contains("dark");
@@ -14,8 +14,8 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     <button
       type="button"
       onClick={toggle}
-      aria-label="Toggle dark mode"
-      title="Toggle dark mode"
+      aria-label={label}
+      title={label}
       className={`grid size-10 place-items-center rounded-xl border border-line bg-surface text-ink transition hover:border-brand-2 ${className}`}
     >
       <Sun className="hidden size-[18px] dark:block" />

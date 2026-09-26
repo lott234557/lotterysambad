@@ -1,6 +1,7 @@
 import { TIERS, tierNumbers, type TierKey } from "@/lib/draws";
 import type { Result } from "@/lib/db/schema";
 import { FirstPrize } from "./FirstPrize";
+import { fmt, getDict, type Locale } from "@/lib/i18n";
 
 const GRID: Record<TierKey, string> = {
   first: "",
@@ -16,49 +17,52 @@ export function PrizeTiers({
   prizes,
   middle,
   id = "prizes",
+  lang = "en",
 }: {
   result: Result;
   prizes: Record<TierKey, string>;
   middle?: React.ReactNode;
   id?: string;
+  lang?: Locale;
 }) {
+  const t = getDict(lang);
   return (
     <div id={id} className="space-y-4">
       <div className="card p-4 sm:p-6">
         <div className="mx-auto max-w-xl">
-          <FirstPrize number={result.firstPrize} amount={prizes.first} size="lg" />
+          <FirstPrize number={result.firstPrize} amount={prizes.first} size="lg" label={t.tiers.first} awaiting={t.prize.awaiting} />
         </div>
       </div>
-      {TIERS.filter((t) => t.key !== "first").map((t) => {
-        const nums = tierNumbers(result, t.key);
+      {TIERS.filter((x) => x.key !== "first").map((tier) => {
+        const nums = tierNumbers(result, tier.key);
         return (
-          <div key={t.key}>
-            <section className="card overflow-hidden" aria-label={t.label}>
+          <div key={tier.key}>
+            <section className="card overflow-hidden" aria-label={t.tiers[tier.key]}>
               <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 px-4 py-3 sm:px-5">
                 <h3 className="flex items-center gap-2 text-[0.98rem] font-extrabold">
-                  <span className="grid h-7 min-w-7 place-items-center rounded-lg bg-navy px-1.5 text-[0.7rem] font-extrabold text-gold">{t.short.replace(".", "")}</span>
-                  {t.label}
+                  <span className="grid h-7 min-w-7 place-items-center rounded-lg bg-navy px-1.5 text-[0.7rem] font-extrabold text-gold">{t.tiers.short[tier.key]}</span>
+                  {t.tiers[tier.key]}
                 </h3>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="pill bg-gold-soft text-ink">{prizes[t.key]}</span>
-                  <span className="text-muted">{nums.length ? `${nums.length} number${nums.length > 1 ? "s" : ""}` : "updating"}</span>
+                  <span className="pill bg-gold-soft text-ink">{prizes[tier.key]}</span>
+                  <span className="text-muted">{nums.length ? (nums.length > 1 ? fmt(t.prize.numbers, { n: nums.length }) : t.prize.number) : t.prize.updating}</span>
                 </div>
               </header>
               <div className="p-3 sm:p-4">
                 {nums.length ? (
-                  <ul className={`grid gap-2 ${GRID[t.key]}`}>
+                  <ul className={`grid gap-2 ${GRID[tier.key]}`}>
                     {nums.map((n) => (
-                      <li key={n} className="chip" data-n={n} data-tier={t.key}>
+                      <li key={n} className="chip" data-n={n} data-tier={tier.key}>
                         {n}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="py-3 text-center text-sm text-muted">Numbers will be updated shortly.</p>
+                  <p className="py-3 text-center text-sm text-muted">{t.prize.soon}</p>
                 )}
               </div>
             </section>
-            {t.key === "third" && middle}
+            {tier.key === "third" && middle}
           </div>
         );
       })}
