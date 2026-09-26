@@ -52,10 +52,11 @@ async function log(entry: { date: string; slot: Slot; status: string; source?: s
 }
 
 /** Scrape one draw. Safe to call every minute – finished draws are skipped. */
-export async function scrapeDraw(dateISO: string, slot: Slot, opts: { force?: boolean } = {}): Promise<ScrapeOutcome> {
+export async function scrapeDraw(dateISO: string, slot: Slot, opts: { force?: boolean; trigger?: string; skipMemo?: boolean } = {}): Promise<ScrapeOutcome> {
   const t0 = Date.now();
+  const tag = opts.trigger ? `[${opts.trigger}] ` : "";
   const memoKey = `${dateISO}:${slot}`;
-  if (!opts.force && done.has(memoKey)) {
+  if (!opts.force && !opts.skipMemo && done.has(memoKey)) {
     return { date: dateISO, slot, status: "skipped", message: "already complete (memo)", changed: false };
   }
 
@@ -135,7 +136,7 @@ export async function scrapeDraw(dateISO: string, slot: Slot, opts: { force?: bo
   if (!haveNumbers && !haveImage) {
     const ms = Date.now() - t0;
     const status = candidates.some((c) => c.note.startsWith("fetch error") || c.note.startsWith("HTTP")) ? "error" : "waiting";
-    await log({ date: dateISO, slot, status, message: `Result not published yet. ${notes.join(" | ")}`, ms });
+    await log({ date: dateISO, slot, status, message: `${tag}Result not published yet. ${notes.join(" | ")}`, ms });
     return { date: dateISO, slot, status, message: "not published yet", changed: false };
   }
 
@@ -201,7 +202,7 @@ export async function scrapeDraw(dateISO: string, slot: Slot, opts: { force?: bo
     slot,
     status,
     source: row.source ?? undefined,
-    message: `${changed ? "Saved" : "No change"} – 1st: ${row.firstPrize ?? "-"}, image: ${row.imageKey ? "yes" : "no"}. ${notes.join(" | ")}`,
+    message: `${tag}${changed ? "Saved" : "No change"} – 1st: ${row.firstPrize ?? "-"}, image: ${row.imageKey ? "yes" : "no"}. ${notes.join(" | ")}`,
     ms,
   });
   if (changed && !existing && settings.indexNowKey) {

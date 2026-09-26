@@ -42,13 +42,15 @@ Dashboard (today's 3 draws, "Fetch now", cron URL, import old results) · Result
 
 ## How the automatic result scraping works
 
-1. An external cron pings `GET /api/cron/scrape?key=CRON_SECRET` **every minute**.
-2. Outside draw windows it returns instantly (no DB/network work). Inside the windows
-   (IST **1:03–3:30 PM**, **6:03–8:30 PM**, **8:03–10:30 PM**) it scrapes the due draw.
+1. **Auto-fetch is built in** (Admin → Dashboard → *Auto-fetch results*, on by default). Each draw is fetched in a fast window – IST **1:01–1:20 PM**, **6:01–6:20 PM**, **8:01–8:20 PM**, at most every 25 s – and after that every 2 min until the draw is complete (max 2.5 h).
+2. It is triggered from three places that share one database lock (a draw is never fetched twice at once):
+   - **visitors** – result pages that are waiting for a draw poll `/api/status`, which runs the fetch in the background;
+   - **the admin dashboard** – every 20 s while it is open;
+   - **an optional cron** – `GET /api/cron/scrape?key=CRON_SECRET` every minute (cron-job.org) makes it independent of visitors.
 3. Sources are fetched in parallel: `sambad.com/today-{1pm|6pm|8pm}`, `lottery.sambad.com/today/{1|6|8}-pm/`, `sambad.com/DD-MM-YYYY`. The parsers read prize labels + number formats (not CSS classes) so small redesigns don't break them.
 4. Safety checks: the page must show the **requested date** (result-image file name or date text), and a new 1st prize can never equal a previous draw (prevents publishing yesterday's result).
 5. The result image is copied from the source (`lottery-sambad-{slot}-{DD-MM-YYYY}.jpg/.webp`), converted to optimised WebP and served from your own domain (`/media/...`).
-6. The draw is saved → all pages + sitemap are revalidated → IndexNow ping (if configured). Once a draw has all tiers + image it's marked **complete** and not fetched again.
+6. The draw is saved → all pages + sitemap are revalidated (cache cleared) → open pages refresh themselves → IndexNow ping (if configured). Once a draw has all tiers + image it's marked **complete** and not fetched again. After midnight IST the cache is cleared once so "today" pages switch to the new date.
 7. A daily Vercel Cron (`/api/cron/catchup`, ~10:10 PM IST) fills anything missed in the last 2 days. Admin → Dashboard → **Import old results** back-fills any date range.
 
 Every run is visible in **Admin → Scraper logs**. If a source changes its layout, results can always be added/edited manually (and **locked** so the scraper never overwrites them).
@@ -80,11 +82,12 @@ git push -u origin main
 ### 4. Domain
 Vercel → Project → Settings → Domains → add `lotterysambad.plus` (and `www` redirect). Point DNS at your registrar as Vercel shows (A `76.76.21.21` / CNAME `cname.vercel-dns.com`).
 
-### 5. Every-minute trigger — cron-job.org (free)
+### 5. Optional: every-minute trigger — cron-job.org (free)
+Auto-fetch already works whenever visitors (or you, on the dashboard) are on the site. Add this so results are fetched even when nobody is online:
 1. Sign up at <https://cron-job.org> → **Create cronjob**.
 2. URL: `https://lotterysambad.plus/api/cron/scrape?key=YOUR_CRON_SECRET`
 3. Schedule: **every 1 minute** (or custom: minutes `*`, hours `12-22`, timezone **Asia/Kolkata**). Save.
-4. That's it — results now appear within ~1 minute of publication.
+4. That's it — results now appear within ~1 minute of publication, even with zero visitors.
 
 > Vercel's own Cron on the free Hobby plan only runs once a day, which is why an external 1-minute pinger is used. On Vercel Pro you can instead add `{"path": "/api/cron/scrape", "schedule": "* * * * *"}` to `vercel.json`.
 

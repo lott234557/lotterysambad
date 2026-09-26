@@ -13,6 +13,7 @@ import { toWebp } from "@/lib/image";
 import { saveMedia, deleteMedia } from "@/lib/storage";
 import { saveSettings, getSettingsFresh, AD_SLOTS, type SiteSettings, type AdSlotKey } from "@/lib/settings";
 import { fetchImage } from "@/lib/scraper/fetch";
+import { autoFetch } from "@/lib/autofetch";
 
 export type ActionState = { ok?: boolean; error?: string; message?: string; url?: string };
 
@@ -62,9 +63,32 @@ export async function refreshSiteAction(): Promise<ActionState> {
 export async function scrapeNowAction(date: string, slot: string): Promise<ScrapeOutcome | { error: string }> {
   await requireAdmin();
   if (!isValidISO(date) || !isSlot(slot)) return { error: "Bad date or slot" };
-  const out = await scrapeDraw(date, slot, { force: true });
+  const out = await scrapeDraw(date, slot, { force: true, trigger: "manual" });
   revalidateSite();
   return out;
+}
+
+/** Called every 20 s by the dashboard while it is open: runs the built-in auto-fetch (shared lock, windows only). */
+export async function autoFetchTickAction(): Promise<{ changed: boolean; lines: string[]; enabled: boolean } | { error: string }> {
+  await requireAdmin();
+  try {
+    const r = await autoFetch("admin");
+    const lines = [
+      ...r.ran.map((o) => `${SLOT_META[o.slot].label}: ${o.status} – ${o.message}`),
+      ...r.skipped.map((x) => x.replace(/^(\w+):/, (_m, k: string) => `${isSlot(k) ? SLOT_META[k].label : k}:`)),
+      ...(r.rolledOver ? ["New day – page cache cleared"] : []),
+    ];
+    return { changed: r.ran.some((o) => o.changed) || r.rolledOver, lines, enabled: r.enabled };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+}
+
+/** Dashboard switch for automatic fetching (same flag as Settings → Scraper). */
+export async function setAutoFetchAction(on: boolean): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  await saveSettings({ scraperEnabled: !!on });
+  return { ok: true };
 }
 
 /** Fill missing draws of one date (used by the backfill tool, one date per call). */

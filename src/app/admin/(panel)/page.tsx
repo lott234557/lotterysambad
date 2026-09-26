@@ -11,6 +11,7 @@ import { CopyField } from "@/components/admin/forms";
 import { ScrapeButton } from "@/components/admin/ScrapeButton";
 import { Backfill } from "@/components/admin/Backfill";
 import { RefreshSite } from "@/components/admin/RefreshSite";
+import { AutoFetchPanel } from "@/components/admin/AutoFetchPanel";
 import { ensureSetup } from "@/lib/setup";
 import { Trophy, FileText, Files, Image as ImageIcon, Plus } from "lucide-react";
 
@@ -30,7 +31,7 @@ export default async function Dashboard() {
     <>
       <PageHeader
         title="Dashboard"
-        desc={<>Today is <b>{fullDate(today)}</b> (IST). Scraper is {s.scraperEnabled ? <Badge tone="ok">enabled</Badge> : <Badge tone="live">disabled</Badge>}</>}
+        desc={<>Today is <b>{fullDate(today)}</b> (IST). Auto-fetch is {s.scraperEnabled ? <Badge tone="ok">ON</Badge> : <Badge tone="live">OFF</Badge>}</>}
         actions={
           <>
             <RefreshSite />
@@ -39,6 +40,12 @@ export default async function Dashboard() {
           </>
         }
       />
+      <div className="mb-4">
+        <AutoFetchPanel
+          enabled={s.scraperEnabled}
+          complete={{ "1pm": !!draws["1pm"]?.isComplete, "6pm": !!draws["6pm"]?.isComplete, "8pm": !!draws["8pm"]?.isComplete }}
+        />
+      </div>
       <div className="grid gap-4 md:grid-cols-3">
         {SLOTS.map((x) => {
           const r = draws[x];
@@ -80,10 +87,10 @@ export default async function Dashboard() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Panel title="Automatic scraping (cron)" desc="Ping this URL every minute (cron-job.org, free). It only works inside draw windows and returns instantly otherwise.">
+        <Panel title="Extra guarantee: cron URL (optional)" desc="Auto-fetch already runs by itself when visitors are on the site. To fetch even when nobody is online, ping this URL every minute at cron-job.org (free). Outside draw windows it returns instantly.">
           <CopyField value={cronUrl} secret />
           <ul className="mt-4 space-y-1.5 text-xs text-muted">
-            <li>• Windows (IST): 1:03–3:30 PM, 6:03–8:30 PM, 8:03–10:30 PM – polls each minute until the draw is complete.</li>
+            <li>• Windows (IST): 1:01–1:20 PM, 6:01–6:20 PM, 8:01–8:20 PM (every 25 s), then every 2 min until the draw is complete.</li>
             <li>• Catch-up: <code>/api/cron/catchup</code> fills any missing draw of the last 2 days (Vercel daily cron runs it at ~10:10 PM IST).</li>
             <li>• Each run is logged under <Link href="/admin/logs" className="text-brand-2 underline">Scraper Logs</Link>.</li>
           </ul>
