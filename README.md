@@ -25,6 +25,10 @@ Premium, fast Lottery Sambad (Dear Lottery) results website with automatic scrap
 | Draw schedule & prizes | `/lottery-sambad-draw-schedule` | dear lottery schedule |
 | Ticket checker | `/check-ticket` | check lottery ticket |
 | All Indian lotteries compared (Kerala, Punjab, West Bengal, Sikkim, Maharashtra, legal states, fax) | `/indian-lotteries` | kerala lottery vs lottery sambad, lotteries in india, lottery fax |
+| Kerala lottery result (live + date archive) | `/kerala-lottery-result`, `/kerala-lottery-result/25-09-2026` | kerala lottery result today |
+| Punjab State lottery result | `/punjab-state-lottery-result`, `/punjab-state-lottery-result/26-09-2026` | punjab state lottery result, dear 50 |
+| Maharashtra lottery result | `/maharashtra-lottery-result`, `/maharashtra-lottery-result/25-09-2026` | maharashtra lottery result |
+| West Bengal State lottery result (Dear 1/6/8 PM + official WB draws) | `/west-bengal-state-lottery-result` | west bengal state lottery result |
 | Guides (blog) | `/blog`, `/blog/[slug]` | |
 | Legal pages (editable) | `/privacy-policy`, `/disclaimer`, `/dmca`, `/content-policy`, `/terms-and-conditions`, `/about-us`, `/contact-us` | |
 
@@ -38,7 +42,23 @@ Pages are static (ISR) and are re-generated **instantly** whenever the scraper s
 
 Dashboard (today's 3 draws, "Fetch now", cron URL, import old results) · Results (list / edit / add manually / re-fetch / lock / upload image) · Articles (Markdown editor with image upload & preview) · Pages · Media · Ads & ads.txt (AdSense ID + 7 ad placements) · SEO & Analytics (GA4, Search Console & Bing verification, IndexNow, robots rules, custom scripts) · Settings (site name, logo, footer text, social links, prize amounts, weekly draw names, scraper on/off) · Scraper logs.
 
+The four state-lottery pages are **not in the menu** – they are linked from the comparison table, the “When do results come out” chart, `/indian-lotteries` and each other's sidebar.
+
 ---
+
+## Other state lotteries (Kerala · Punjab · Maharashtra · West Bengal)
+
+| Lottery | Auto-fetch window (IST) | Built-in sources | What is shown |
+| --- | --- | --- | --- |
+| Kerala | 3:02 – 6:30 PM (every 60 s until 4:45, then 4 min) | keralalotteries.net, keralalotteryresult.net (post for the date found on the home page / month archive) | full prize list (1st – 9th, consolation), ticket finder |
+| Maharashtra | 4:20 – 7:30 PM (every 90 s, then 5 min) | goodreturns.in weekly / monthly / bumper pages for the date | every draw of the day with all prize tiers |
+| Punjab | 6:35 – 9:45 PM (every 90 s, then 5 min) | goodreturns.in (1st prize) + punjablotterynews.com / punjabstatelotteryresult.com (official result-sheet image) | 1st prize + full result image per draw |
+| West Bengal | – | uses the Lottery Sambad 1/6/8 PM results (what “West Bengal lottery result” searches mean) | Dear draws live + any official WB draw you add |
+
+- Results are stored in the `lottery_draws` table (created automatically on deploy). All four use the same auto-fetch as the 1/6/8 PM draws (visitors, dashboard, optional cron) and the daily catch-up.
+- **Admin → Other lotteries**: per-lottery status, *Fetch now* / *Fetch date*, auto-fetch on/off, up to 5 extra source URLs (with `{date}` placeholders), list / edit / delete draws, **Add result** with *Paste result text* (copy the result from any site or PDF – the prize tiers are filled in automatically), image upload and lock.
+- The parsers read prize headings and ticket formats from the page text (not CSS classes). Run `npm run test:others` to check them; the dev mock (`scripts/dev/mock-sources.mjs`) serves sample pages for all sources.
+- If a source site changes or disappears, add another one under *Extra source URLs* or paste the result manually – no code change needed.
 
 ## How the automatic result scraping works
 
@@ -133,6 +153,8 @@ src/lib/i18n/            dict/en|hi|bn|ml.ts (all UI text), config.ts (locales, 
 src/lib/lotteries.ts     all-India lottery figures used by the comparison table and charts
 src/components/charts/   bar / column / timeline charts (HTML, hover tooltips, table view)
 src/proxy.ts             admin guard + browser-language redirect
+src/lib/others/          Kerala / Punjab / Maharashtra / West Bengal: config (paths, windows), parse.ts, scrape.ts, data.ts
+src/views/others.tsx     their live + date pages (all languages)
 src/app/admin/…          admin dashboard + server actions (actions.ts)
 src/app/api/cron/…       scraper triggers
 src/app/media/[...key]   image server (DB or Blob) with 1-year immutable caching

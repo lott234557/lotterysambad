@@ -10,7 +10,7 @@ export function ResultImage({
   priority = false,
   lang = "en",
 }: {
-  result: Result;
+  result: Pick<Result, "imageKey" | "imageWidth" | "imageHeight">;
   alt: string;
   credit?: string | null;
   priority?: boolean;

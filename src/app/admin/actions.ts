@@ -75,10 +75,11 @@ export async function autoFetchTickAction(): Promise<{ changed: boolean; lines: 
     const r = await autoFetch("admin");
     const lines = [
       ...r.ran.map((o) => `${SLOT_META[o.slot].label}: ${o.status} – ${o.message}`),
+      ...r.others.map((o) => `${o.lottery}: ${o.status} – ${o.message}`),
       ...r.skipped.map((x) => x.replace(/^(\w+):/, (_m, k: string) => `${isSlot(k) ? SLOT_META[k].label : k}:`)),
       ...(r.rolledOver ? ["New day – page cache cleared"] : []),
     ];
-    return { changed: r.ran.some((o) => o.changed) || r.rolledOver, lines, enabled: r.enabled };
+    return { changed: r.ran.some((o) => o.changed) || r.others.some((o) => o.changed) || r.rolledOver, lines, enabled: r.enabled };
   } catch (e) {
     return { error: (e as Error).message };
   }

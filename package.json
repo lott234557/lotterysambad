@@ -11,6 +11,7 @@
     "db:migrate": "node scripts/migrate.mjs",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "test:parser": "tsx scripts/test-parser.ts",
+    "test:others": "tsx scripts/test-others.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

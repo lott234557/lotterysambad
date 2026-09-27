@@ -5,6 +5,8 @@ import { siteUrl } from "@/lib/settings";
 import { isoToDMY, monthKey, todayIST } from "@/lib/time";
 import { SLOT_META } from "@/lib/draws";
 import { HREFLANG, LOCALES, lp } from "@/lib/i18n/config";
+import { OTHER, OTHER_IDS, isOtherId } from "@/lib/others/config";
+import { getOtherDateKeys } from "@/lib/others/data";
 
 export const revalidate = 3600;
 
@@ -14,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
   const now = new Date();
   const today = todayIST();
-  const [results, pages, posts] = await Promise.all([getAllResultKeys(), getAllPages(), getPublishedPosts(1000)]);
+  const [results, pages, posts, otherKeys] = await Promise.all([getAllResultKeys(), getAllPages(), getPublishedPosts(1000), getOtherDateKeys()]);
   const latest = results[0]?.updatedAt ?? now;
 
   /** One entry per language, each listing all language versions (hreflang). */
@@ -33,8 +35,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...localized("/indian-lotteries", { lastModified: now, changeFrequency: "weekly", priority: 0.7 }),
     ...localized("/check-ticket", { lastModified: now, changeFrequency: "weekly", priority: 0.7 }),
     ...localized("/lottery-sambad-draw-schedule", { lastModified: now, changeFrequency: "monthly", priority: 0.6 }),
+    ...OTHER_IDS.flatMap((id) =>
+      localized(OTHER[id].path, {
+        lastModified: otherKeys.find((k) => k.lottery === id)?.updatedAt ?? (id === "westbengal" ? latest : now),
+        changeFrequency: "hourly",
+        priority: 0.85,
+      }),
+    ),
     { url: `${base}/blog`, lastModified: posts[0]?.updatedAt ?? now, changeFrequency: "weekly", priority: 0.5 },
   ];
+  const otherUrls = otherKeys
+    .filter((k) => isOtherId(k.lottery))
+    .flatMap((k) =>
+      localized(`${OTHER[k.lottery as keyof typeof OTHER].path}/${isoToDMY(k.drawDate)}`, {
+        lastModified: new Date(k.updatedAt),
+        changeFrequency: k.drawDate === today ? "hourly" : "yearly",
+        priority: 0.6,
+      }),
+    );
 
   // day pages + draw pages
   const days = new Map<string, Date>();
@@ -63,6 +81,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...dayUrls,
     ...draws,
     ...monthUrls,
+    ...otherUrls,
     ...posts.map((p) => ({ url: `${base}/blog/${p.slug}`, lastModified: p.updatedAt, changeFrequency: "monthly" as const, priority: 0.5 })),
     ...pages.map((p) => ({ url: `${base}/${p.slug}`, lastModified: p.updatedAt, changeFrequency: "yearly" as const, priority: 0.2 })),
   ];

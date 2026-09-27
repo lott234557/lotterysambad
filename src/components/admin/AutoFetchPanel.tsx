@@ -7,6 +7,9 @@ import { SLOTS, SLOT_META, type Slot } from "@/lib/draws";
 import { dueSlots, nextWindow, windowLabel, FAST_GAP_S, SLOW_GAP_S } from "@/lib/windows";
 import { nowIST } from "@/lib/time";
 import { useNow } from "@/lib/useNow";
+import { OTHER, OTHER_IDS, clockLabel, windowPhase, type OtherId } from "@/lib/others/config";
+
+const ONAME: Record<OtherId, string> = { kerala: "Kerala", punjab: "Punjab", maharashtra: "Maharashtra", westbengal: "West Bengal" };
 
 const TICK_MS = 20_000;
 
@@ -19,7 +22,16 @@ function hm(ms: number) {
  * Dashboard auto-fetch control: on/off switch, live status, and – while this page is open – runs the
  * auto-fetch every 20 s during the draw windows and refreshes the dashboard when a result arrives.
  */
-export function AutoFetchPanel({ enabled, complete }: { enabled: boolean; complete: Record<Slot, boolean> }) {
+export function AutoFetchPanel({
+  enabled,
+  complete,
+  others,
+}: {
+  enabled: boolean;
+  complete: Record<Slot, boolean>;
+  /** other lotteries: auto-fetch on/off and whether today's draws are complete */
+  others: Record<OtherId, { enabled: boolean; done: boolean }>;
+}) {
   const router = useRouter();
   const now = useNow(1000);
   const [on, setOn] = useState(enabled);
@@ -29,6 +41,12 @@ export function AutoFetchPanel({ enabled, complete }: { enabled: boolean; comple
   const ticks = useRef(0);
   const completeRef = useRef(complete);
   completeRef.current = complete;
+  const othersRef = useRef(others);
+  othersRef.current = others;
+  const dueOthers = (minute: number, o = others) =>
+    OTHER_IDS.map((id) => ({ id, phase: windowPhase(OTHER[id], minute) })).filter(
+      (x): x is { id: OtherId; phase: "fast" | "slow" } => !!x.phase && o[x.id].enabled && !(o[x.id].done && (!OTHER[x.id].multi || x.phase === "slow")),
+    );
 
   useEffect(() => setOn(enabled), [enabled]);
 
@@ -39,7 +57,7 @@ export function AutoFetchPanel({ enabled, complete }: { enabled: boolean; comple
       if (busy.current || document.visibilityState !== "visible") return;
       const n = nowIST();
       const due = dueSlots(n.minuteOfDay).filter((d) => !completeRef.current[d.slot]);
-      if (!due.length) return;
+      if (!due.length && !dueOthers(n.minuteOfDay, othersRef.current).length) return;
       busy.current = true;
       try {
         const r = await autoFetchTickAction();
@@ -68,13 +86,14 @@ export function AutoFetchPanel({ enabled, complete }: { enabled: boolean; comple
 
   const n = now ? nowIST(now) : null;
   const due = n ? dueSlots(n.minuteOfDay).filter((d) => !complete[d.slot]) : [];
+  const dueO = n ? dueOthers(n.minuteOfDay) : [];
   const nw = n ? nextWindow(n.minuteOfDay) : null;
   const allDone = SLOTS.every((s) => complete[s]);
 
   let status: React.ReactNode = <span className="text-muted">…</span>;
   if (n) {
     if (!on) status = <span className="text-live">Off – results are fetched only when you press “Fetch now”.</span>;
-    else if (due.length)
+    else if (due.length || dueO.length)
       status = (
         <span className="flex flex-wrap items-center gap-2">
           <span className="live-dot" />
@@ -82,6 +101,11 @@ export function AutoFetchPanel({ enabled, complete }: { enabled: boolean; comple
           {due.map((d) => (
             <span key={d.slot} className="pill bg-live/10 text-live">
               {SLOT_META[d.slot].label} · every {d.phase === "fast" ? `${FAST_GAP_S}s` : `${SLOW_GAP_S / 60} min`}
+            </span>
+          ))}
+          {dueO.map((d) => (
+            <span key={d.id} className="pill bg-live/10 text-live">
+              {ONAME[d.id]} · every {d.phase === "fast" ? `${OTHER[d.id].window!.fastGap}s` : `${Math.round(OTHER[d.id].window!.slowGap / 60)} min`}
             </span>
           ))}
         </span>
@@ -132,6 +156,11 @@ export function AutoFetchPanel({ enabled, complete }: { enabled: boolean; comple
           </span>
         ))}
         <span className="pill bg-surface-2 text-muted">then every 2 min until complete</span>
+        {OTHER_IDS.filter((id) => OTHER[id].window).map((id) => (
+          <span key={id} className={`pill ${others[id].done ? "bg-ok/10 text-ok" : others[id].enabled ? "bg-surface-2 text-muted" : "bg-live/10 text-live line-through"}`}>
+            {others[id].done ? <CheckCircle2 className="size-3.5" /> : <Radio className="size-3.5" />} {ONAME[id]} {clockLabel(OTHER[id].window!.from)}–{clockLabel(OTHER[id].window!.to)}
+          </span>
+        ))}
       </div>
 
       {log.length > 0 && (

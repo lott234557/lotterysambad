@@ -1,0 +1,11 @@
+import { OtherLivePage, otherMetadata } from "@/views/others";
+
+export const revalidate = 1800;
+
+export function generateMetadata() {
+  return otherMetadata("en", "kerala");
+}
+
+export default function Page() {
+  return <OtherLivePage lang="en" id="kerala" />;
+}

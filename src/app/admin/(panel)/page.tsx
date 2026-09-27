@@ -12,6 +12,10 @@ import { ScrapeButton } from "@/components/admin/ScrapeButton";
 import { Backfill } from "@/components/admin/Backfill";
 import { RefreshSite } from "@/components/admin/RefreshSite";
 import { AutoFetchPanel } from "@/components/admin/AutoFetchPanel";
+import { OtherFetch } from "@/components/admin/OtherFetch";
+import { lotteryDraws } from "@/lib/db/schema";
+import { eq as eqOp } from "drizzle-orm";
+import { OTHER, OTHER_IDS, clockLabel, type OtherId } from "@/lib/others/config";
 import { ensureSetup } from "@/lib/setup";
 import { Trophy, FileText, Files, Image as ImageIcon, Plus } from "lucide-react";
 
@@ -19,12 +23,18 @@ export default async function Dashboard() {
   // layout and page render in parallel – make sure tables exist before querying
   await ensureSetup().catch(() => {});
   const today = todayIST();
-  const [draws, counts, logs, s] = await Promise.all([
+  const [draws, counts, logs, s, otherToday] = await Promise.all([
     getResultsForDate(today),
     Promise.all([db.$count(results), db.$count(posts), db.$count(pages), db.select({ n: sql<number>`count(*)::int`, bytes: sql<number>`coalesce(sum(size),0)::bigint` }).from(media)]),
     db.select().from(scrapeLogs).orderBy(desc(scrapeLogs.runAt)).limit(12),
     getSettingsFresh(),
+    db.select().from(lotteryDraws).where(eqOp(lotteryDraws.drawDate, today)).catch(() => []),
   ]);
+  const ONAME: Record<OtherId, string> = { kerala: "Kerala", punjab: "Punjab", maharashtra: "Maharashtra", westbengal: "West Bengal" };
+  const byLottery = (id: OtherId) => otherToday.filter((d) => d.lottery === id);
+  const othersState = Object.fromEntries(
+    OTHER_IDS.map((id) => [id, { enabled: s.others[id].enabled, done: byLottery(id).length > 0 && byLottery(id).every((d) => d.isComplete) }]),
+  ) as Record<OtherId, { enabled: boolean; done: boolean }>;
   const [nResults, nPosts, nPages, mediaAgg] = counts;
   const cronUrl = `${siteUrl()}/api/cron/scrape?key=${process.env.CRON_SECRET ?? "SET_CRON_SECRET"}`;
   return (
@@ -44,6 +54,7 @@ export default async function Dashboard() {
         <AutoFetchPanel
           enabled={s.scraperEnabled}
           complete={{ "1pm": !!draws["1pm"]?.isComplete, "6pm": !!draws["6pm"]?.isComplete, "8pm": !!draws["8pm"]?.isComplete }}
+          others={othersState}
         />
       </div>
       <div className="grid gap-4 md:grid-cols-3">
@@ -63,6 +74,38 @@ export default async function Dashboard() {
                 <ScrapeButton date={today} slot={x} small />
                 {r && <Link href={`/admin/results/${r.id}`} className="btn btn-ghost !px-2.5 !py-1.5 text-xs">Edit</Link>}
                 <a href={`/result/${isoToDMY(today)}/${x}`} target="_blank" className="btn btn-ghost !px-2.5 !py-1.5 text-xs">View</a>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        {OTHER_IDS.filter((id) => OTHER[id].window).map((id) => {
+          const list = byLottery(id);
+          return (
+            <div key={id} className="card p-4">
+              <div className="flex items-center justify-between gap-2">
+                <Link href={`/admin/lotteries?l=${id}`} className="font-extrabold hover:text-brand-2">
+                  {ONAME[id]} <span className="text-xs font-semibold text-muted">{clockLabel(OTHER[id].drawMinute)}</span>
+                </Link>
+                {list.length ? (
+                  othersState[id].done ? <Badge tone="ok">Complete</Badge> : <Badge tone="warn">Partial</Badge>
+                ) : (
+                  <Badge>Waiting</Badge>
+                )}
+              </div>
+              <div className="mt-2 space-y-0.5 text-xs text-muted">
+                {list.length ? list.slice(0, 5).map((d) => (
+                  <div key={d.id} className="flex justify-between gap-2">
+                    <span className="truncate">{d.drawName}</span>
+                    <span className="num font-bold text-ink">{d.firstPrize ?? "image"}</span>
+                  </div>
+                )) : <div>No result yet today.</div>}
+                {list.length > 5 && <div>+{list.length - 5} more</div>}
+              </div>
+              <div className="mt-3">
+                <OtherFetch lottery={id} today={today} compact />
               </div>
             </div>
           );

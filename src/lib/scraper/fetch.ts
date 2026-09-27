@@ -1,7 +1,7 @@
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
 
-const SOURCE_HOSTS = /^https?:\/\/((?:lottery\.)?sambad\.com|lotterysambadresult\.in)(?=\/|$)/;
+const SOURCE_HOSTS = /^https?:\/\/(?:www\.)?([a-z0-9.-]+\.[a-z]{2,})(?=\/|$|\?)/i;
 
 /** Dev/test only: route source-site requests to a local mock server (SCRAPER_MOCK_ORIGIN). */
 function route(url: string) {

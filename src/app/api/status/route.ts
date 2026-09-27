@@ -1,7 +1,9 @@
 import { NextResponse, after, type NextRequest } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { results } from "@/lib/db/schema";
+import { lotteryDraws, results } from "@/lib/db/schema";
+import { isOtherId } from "@/lib/others/config";
+import { drawsFingerprint } from "@/lib/others/fp";
 import { isValidISO, todayIST } from "@/lib/time";
 import { autoFetch } from "@/lib/autofetch";
 
@@ -25,6 +27,16 @@ export async function GET(req: NextRequest) {
         console.warn("[autofetch] visitor trigger failed", (e as Error).message);
       }
     });
+  }
+  const lottery = req.nextUrl.searchParams.get("lottery");
+  if (isOtherId(lottery)) {
+    const rows = await db
+      .select({ drawKey: lotteryDraws.drawKey, firstPrize: lotteryDraws.firstPrize, imageKey: lotteryDraws.imageKey, isComplete: lotteryDraws.isComplete, tiers: lotteryDraws.tiers })
+      .from(lotteryDraws)
+      .where(and(eq(lotteryDraws.lottery, lottery), eq(lotteryDraws.drawDate, date), eq(lotteryDraws.status, "published")));
+    const fp = drawsFingerprint(rows);
+    const complete = rows.length > 0 && rows.every((r) => r.isComplete);
+    return NextResponse.json({ date, today, lottery, fp, complete }, { headers: { "Cache-Control": "public, max-age=0, s-maxage=15, stale-while-revalidate=15" } });
   }
   const rows = await db
     .select({ slot: results.slot, firstPrize: results.firstPrize, imageKey: results.imageKey, isComplete: results.isComplete, updatedAt: results.updatedAt })

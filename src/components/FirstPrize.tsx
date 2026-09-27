@@ -22,11 +22,13 @@ export function FirstPrize({
         <span>{amount}</span>
       </div>
       <div className={`num mt-1 flex items-baseline justify-center gap-2 font-extrabold leading-none ${big ? "text-[2.6rem] sm:text-6xl" : "text-[2rem]"}`}>
-        {number ? (
+        {number && digits ? (
           <>
             <span className={`${big ? "text-[1.6rem] sm:text-4xl" : "text-[1.25rem]"} opacity-80`}>{series}</span>
             <span>{digits}</span>
           </>
+        ) : number ? (
+          <span>{series}</span>
         ) : (
           <span className="text-base font-bold opacity-70">{awaiting}</span>
         )}

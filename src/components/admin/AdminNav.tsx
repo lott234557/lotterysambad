@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { LayoutDashboard, Trophy, FileText, Files, Megaphone, Search, Settings, ScrollText, Image as ImageIcon, Menu, X, ExternalLink, LogOut } from "lucide-react";
+import { LayoutDashboard, Trophy, Globe2, FileText, Files, Megaphone, Search, Settings, ScrollText, Image as ImageIcon, Menu, X, ExternalLink, LogOut } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { logoutAction } from "@/app/admin/actions";
@@ -10,6 +10,7 @@ import { logoutAction } from "@/app/admin/actions";
 const ITEMS = [
   { href: "/admin", label: "Dashboard", Icon: LayoutDashboard },
   { href: "/admin/results", label: "Results", Icon: Trophy },
+  { href: "/admin/lotteries", label: "Other lotteries", Icon: Globe2 },
   { href: "/admin/articles", label: "Articles", Icon: FileText },
   { href: "/admin/pages", label: "Pages", Icon: Files },
   { href: "/admin/media", label: "Media", Icon: ImageIcon },

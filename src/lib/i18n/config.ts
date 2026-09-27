@@ -32,6 +32,7 @@ const LOCALIZABLE = [
   /^\/lottery-sambad-draw-schedule$/,
   /^\/check-ticket$/,
   /^\/indian-lotteries$/,
+  /^\/(kerala-lottery-result|punjab-state-lottery-result|maharashtra-lottery-result|west-bengal-state-lottery-result)(\/[^/]+)?$/,
 ];
 
 export const isLocalizablePath = (path: string) => LOCALIZABLE.some((r) => r.test(path || "/"));

@@ -4,6 +4,9 @@ import { eq } from "drizzle-orm";
 import { db, safeRead } from "./db";
 import { settings } from "./db/schema";
 import { DEFAULT_PRIZES, DEFAULT_SCHEDULE, type Slot, type TierKey } from "./draws";
+import { OTHER_IDS, type OtherId } from "./others/config";
+
+export type OtherSettings = { enabled: boolean; extraSources: string };
 
 export type AdSlotKey = "headerBelow" | "resultTop" | "resultMiddle" | "resultBottom" | "inContent" | "sidebar" | "footerAbove";
 
@@ -41,6 +44,8 @@ export type SiteSettings = {
   schedule: Record<Slot, string[]>;
   scraperEnabled: boolean;
   showImageCredit: boolean;
+  /** Kerala / Punjab / Maharashtra / West Bengal result pages */
+  others: Record<OtherId, OtherSettings>;
 };
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -74,6 +79,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   schedule: DEFAULT_SCHEDULE,
   scraperEnabled: true,
   showImageCredit: false,
+  others: Object.fromEntries(OTHER_IDS.map((id) => [id, { enabled: true, extraSources: "" }])) as Record<OtherId, OtherSettings>,
 };
 
 const KEY = "site";
@@ -87,6 +93,9 @@ function merge(v: Partial<SiteSettings> | null | undefined): SiteSettings {
     adSlots: { ...DEFAULT_SETTINGS.adSlots, ...(s.adSlots ?? {}) },
     prizes: { ...DEFAULT_SETTINGS.prizes, ...(s.prizes ?? {}) },
     schedule: { ...DEFAULT_SETTINGS.schedule, ...(s.schedule ?? {}) },
+    others: Object.fromEntries(
+      OTHER_IDS.map((id) => [id, { ...DEFAULT_SETTINGS.others[id], ...((s.others as Partial<Record<OtherId, OtherSettings>> | undefined)?.[id] ?? {}) }]),
+    ) as Record<OtherId, OtherSettings>,
   };
 }
 

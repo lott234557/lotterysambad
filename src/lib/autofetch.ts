@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, getSql } from "./db";
 import { results } from "./db/schema";
 import { dueSlots, type DueSlot } from "./windows";
@@ -7,6 +7,9 @@ import { nowIST } from "./time";
 import { getSettingsFresh } from "./settings";
 import { scrapeDraw, type ScrapeOutcome } from "./scraper";
 import { revalidateSite } from "./revalidate";
+import { lotteryDraws } from "./db/schema";
+import { OTHER, OTHER_IDS, windowPhase, type OtherId } from "./others/config";
+import { scrapeOther, type OtherOutcome } from "./others/scrape";
 
 /**
  * Built-in automatic result fetching.
@@ -63,15 +66,18 @@ export type AutoFetchResult = {
   ran: ScrapeOutcome[];
   skipped: string[];
   rolledOver: boolean;
+  /** Kerala / Punjab / Maharashtra */
+  others: OtherOutcome[];
 };
 
 export async function autoFetch(trigger: Trigger): Promise<AutoFetchResult> {
   const now = nowIST();
   const today = now.iso;
-  const res: AutoFetchResult = { enabled: true, due: dueSlots(now.minuteOfDay), ran: [], skipped: [], rolledOver: false };
+  const res: AutoFetchResult = { enabled: true, due: dueSlots(now.minuteOfDay), ran: [], skipped: [], rolledOver: false, others: [] };
 
   res.rolledOver = await ensureRollover(today).catch(() => false);
-  if (!res.due.length) return res;
+  const otherPhases = OTHER_IDS.map((id) => ({ id, phase: windowPhase(OTHER[id], now.minuteOfDay) })).filter((x) => x.phase);
+  if (!res.due.length && !otherPhases.length) return res;
 
   const settings = await getSettingsFresh();
   if (!settings.scraperEnabled) {
@@ -79,32 +85,94 @@ export async function autoFetch(trigger: Trigger): Promise<AutoFetchResult> {
     return res;
   }
 
-  const rows = await db
-    .select({ slot: results.slot, isComplete: results.isComplete, source: results.source })
-    .from(results)
-    .where(eq(results.drawDate, today));
-  const state = new Map(rows.map((r) => [r.slot, r]));
+  // Several windows can overlap (e.g. 6:35 PM: Sambad 6 PM + Punjab + Maharashtra). To stay well inside the
+  // function time limit, one call runs at most MAX_JOBS fetches in parallel; the rest are picked up by the
+  // next call (their lock is not taken, so nothing is skipped for long). Fast windows go first.
+  const MAX_JOBS = 2;
+  const jobs: { priority: number; run: () => Promise<void> }[] = [];
+  let taken = 0;
+  const take = async (key: string, gap: number) => {
+    if (taken >= MAX_JOBS) return "busy" as const;
+    const ok = await acquire(key, gap, `${trigger} ${new Date().toISOString()}`);
+    if (ok) taken++;
+    return ok ? ("ok" as const) : ("recent" as const);
+  };
 
-  for (const d of res.due) {
-    const r = state.get(d.slot);
-    if (r?.isComplete) {
-      res.skipped.push(`${d.slot}: complete`);
-      continue;
-    }
-    if (r?.source === "manual") {
-      res.skipped.push(`${d.slot}: locked (manual)`);
-      continue;
-    }
-    if (!(await acquire(`lock:auto:${d.slot}`, d.gap, `${trigger} ${new Date().toISOString()}`))) {
-      res.skipped.push(`${d.slot}: fetched moments ago`);
-      continue;
-    }
-    try {
-      res.ran.push(await scrapeDraw(today, d.slot, { trigger: `auto:${trigger}`, skipMemo: true }));
-    } catch (e) {
-      res.ran.push({ date: today, slot: d.slot, status: "error", message: (e as Error).message, changed: false });
+  type Cand = { key: string; gap: number; fast: boolean; label: string; run: () => Promise<void> };
+  const cands: Cand[] = [];
+
+  /* ---- Lottery Sambad 1 / 6 / 8 PM ---- */
+  if (res.due.length) {
+    const rows = await db
+      .select({ slot: results.slot, isComplete: results.isComplete, source: results.source })
+      .from(results)
+      .where(eq(results.drawDate, today));
+    const state = new Map(rows.map((r) => [r.slot, r]));
+    for (const d of res.due) {
+      const r = state.get(d.slot);
+      if (r?.isComplete) {
+        res.skipped.push(`${d.slot}: complete`);
+        continue;
+      }
+      if (r?.source === "manual") {
+        res.skipped.push(`${d.slot}: locked (manual)`);
+        continue;
+      }
+      cands.push({
+        key: `lock:auto:${d.slot}`,
+        gap: d.gap,
+        fast: d.phase === "fast",
+        label: d.slot,
+        run: async () => {
+          try {
+            res.ran.push(await scrapeDraw(today, d.slot, { trigger: `auto:${trigger}`, skipMemo: true }));
+          } catch (e) {
+            res.ran.push({ date: today, slot: d.slot, status: "error", message: (e as Error).message, changed: false });
+          }
+        },
+      });
     }
   }
-  if (res.ran.some((o) => o.changed)) revalidateSite();
+
+  /* ---- Kerala / Punjab / Maharashtra ---- */
+  for (const { id, phase } of otherPhases as { id: OtherId; phase: "fast" | "slow" }[]) {
+    if (!settings.others[id].enabled) {
+      res.skipped.push(`${id}: auto-fetch off`);
+      continue;
+    }
+    const rows = await db
+      .select({ isComplete: lotteryDraws.isComplete })
+      .from(lotteryDraws)
+      .where(and(eq(lotteryDraws.lottery, id), eq(lotteryDraws.drawDate, today)));
+    const done = rows.length > 0 && rows.every((r) => r.isComplete) && (!OTHER[id].multi || phase === "slow");
+    if (done) {
+      res.skipped.push(`${id}: complete`);
+      continue;
+    }
+    const w = OTHER[id].window!;
+    cands.push({
+      key: `lock:auto:${id}`,
+      gap: phase === "fast" ? w.fastGap : w.slowGap,
+      fast: phase === "fast",
+      label: id,
+      run: async () => {
+        try {
+          res.others.push(await scrapeOther(id, today, { trigger: `auto:${trigger}` }));
+        } catch (e) {
+          res.others.push({ lottery: id, date: today, status: "error", message: (e as Error).message, changed: false, draws: 0 });
+        }
+      },
+    });
+  }
+
+  cands.sort((a, b) => Number(b.fast) - Number(a.fast));
+  for (const c of cands) {
+    const r = await take(c.key, c.gap);
+    if (r === "ok") jobs.push({ priority: c.fast ? 1 : 0, run: c.run });
+    else res.skipped.push(`${c.label}: ${r === "busy" ? "queued for the next check" : "fetched moments ago"}`);
+  }
+  await Promise.all(jobs.map((j) => j.run()));
+
+  if (res.ran.some((o) => o.changed) || res.others.some((o) => o.changed)) revalidateSite();
   return res;
 }

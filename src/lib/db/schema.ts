@@ -113,7 +113,7 @@ export const scrapeLogs = pgTable(
     id: serial("id").primaryKey(),
     runAt: timestamp("run_at", { withTimezone: true }).notNull().defaultNow(),
     drawDate: date("draw_date", { mode: "string" }),
-    slot: varchar("slot", { length: 8 }),
+    slot: varchar("slot", { length: 16 }), // '1pm' | '6pm' | '8pm' | other lottery id ('kerala', 'punjab', …)
     status: varchar("status", { length: 16 }).notNull(), // success | partial | waiting | error | skipped
     source: varchar("source", { length: 120 }),
     message: text("message"),
@@ -122,7 +122,50 @@ export const scrapeLogs = pgTable(
   (t) => [index("scrape_logs_run_idx").on(t.runAt)],
 );
 
+/** One prize tier of an "other" lottery draw (Kerala, Punjab, Maharashtra, West Bengal). */
+export type DrawTier = {
+  label: string; // "1st Prize", "Consolation Prize", …
+  amount?: string; // "₹1 Crore"
+  numbers: string[]; // "RA 494226 (ATTINGAL)", "0024", …
+  expected?: number; // how many numbers the source says are drawn (for completeness checks)
+};
+
+/** Results of other state lotteries – several draws per day possible (drawKey distinguishes them). */
+export const lotteryDraws = pgTable(
+  "lottery_draws",
+  {
+    id: serial("id").primaryKey(),
+    lottery: varchar("lottery", { length: 20 }).notNull(), // kerala | punjab | maharashtra | westbengal
+    drawDate: date("draw_date", { mode: "string" }).notNull(),
+    drawKey: varchar("draw_key", { length: 80 }).notNull(), // slug, e.g. "sk-71", "vaibhavlaxmi", "dear-50-jackal"
+    drawName: varchar("draw_name", { length: 160 }).notNull(),
+    drawCode: varchar("draw_code", { length: 40 }),
+    drawTime: varchar("draw_time", { length: 20 }),
+    kind: varchar("kind", { length: 16 }).notNull().default("daily"), // daily | weekly | monthly | bumper
+    firstPrize: varchar("first_prize", { length: 60 }),
+    firstAmount: varchar("first_amount", { length: 40 }),
+    tiers: jsonb("tiers").$type<DrawTier[]>().notNull().default(sql`'[]'::jsonb`),
+    imageKey: varchar("image_key", { length: 200 }),
+    imageWidth: integer("image_width"),
+    imageHeight: integer("image_height"),
+    imageSourceUrl: text("image_source_url"),
+    sourceUrl: text("source_url"),
+    source: varchar("source", { length: 80 }), // host, or "manual" (locked: never overwritten by the scraper)
+    notes: text("notes"),
+    status: varchar("status", { length: 12 }).notNull().default("published"),
+    isComplete: boolean("is_complete").notNull().default(false),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("lottery_draws_unique_idx").on(t.lottery, t.drawDate, t.drawKey),
+    index("lottery_draws_lottery_date_idx").on(t.lottery, t.drawDate),
+  ],
+);
+
 export type Result = typeof results.$inferSelect;
+export type LotteryDraw = typeof lotteryDraws.$inferSelect;
 export type NewResult = typeof results.$inferInsert;
 export type Post = typeof posts.$inferSelect;
 export type Page = typeof pages.$inferSelect;

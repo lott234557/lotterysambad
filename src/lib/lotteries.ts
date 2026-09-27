@@ -18,10 +18,10 @@ export type LotteryRow = {
 export const LOTTERIES: LotteryRow[] = [
   { id: "sambad", state: "Nagaland", drawsPerWeek: 14, link: "/" },
   { id: "sikkim", state: "Sikkim", drawsPerWeek: 7, link: "/lottery-sambad-6pm-result" },
-  { id: "kerala", state: "Kerala", drawsPerWeek: 7 },
-  { id: "punjab", state: "Punjab", drawsPerWeek: null },
-  { id: "westbengal", state: "West Bengal", drawsPerWeek: 7 },
-  { id: "maharashtra", state: "Maharashtra", drawsPerWeek: null },
+  { id: "kerala", state: "Kerala", drawsPerWeek: 7, link: "/kerala-lottery-result" },
+  { id: "punjab", state: "Punjab", drawsPerWeek: null, link: "/punjab-state-lottery-result" },
+  { id: "westbengal", state: "West Bengal", drawsPerWeek: 7, link: "/west-bengal-state-lottery-result" },
+  { id: "maharashtra", state: "Maharashtra", drawsPerWeek: null, link: "/maharashtra-lottery-result" },
 ];
 
 export type PrizeKey =
@@ -59,8 +59,8 @@ export type DrawKey = "s1" | "kerala" | "wb" | "s6" | "s8";
 /** Daily result timeline (IST, minutes after midnight). */
 export const DAILY_DRAWS: { key: DrawKey; minute: number; sambad?: boolean; href?: string }[] = [
   { key: "s1", minute: 13 * 60, sambad: true, href: "/lottery-sambad-1pm-result" },
-  { key: "kerala", minute: 15 * 60 },
-  { key: "wb", minute: 16 * 60 },
+  { key: "kerala", minute: 15 * 60, href: "/kerala-lottery-result" },
+  { key: "wb", minute: 16 * 60, href: "/west-bengal-state-lottery-result" },
   { key: "s6", minute: 18 * 60, sambad: true, href: "/lottery-sambad-6pm-result" },
   { key: "s8", minute: 20 * 60, sambad: true, href: "/lottery-sambad-8pm-result" },
 ];
