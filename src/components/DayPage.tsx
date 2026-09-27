@@ -13,6 +13,7 @@ import { DrawCard } from "./DrawCard";
 import { LiveWatcher } from "./LiveWatcher";
 import { FAQ } from "./FAQ";
 import { DateJump } from "./DateJump";
+import { LotteryPills } from "./LotteryPills";
 
 export async function DayPage({
   date,
@@ -59,6 +60,7 @@ export async function DayPage({
             </a>
           ))}
         </div>
+        <LotteryPills lang={lang} className="mt-3" />
       </PageHero>
       <div className="wrap mt-8">
         <div className="grid gap-4 md:grid-cols-3">

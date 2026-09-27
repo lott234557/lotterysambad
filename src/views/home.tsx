@@ -10,6 +10,7 @@ import { mediaUrl } from "@/lib/storage";
 import { fmt, fullDateL, getDict, HREFLANG, longDateL, lp, shortDateL, weekdayL, type Locale } from "@/lib/i18n";
 import { alternates, ogLocale, urlFor } from "@/lib/i18n/seo";
 import { DrawCard } from "@/components/DrawCard";
+import { LotteryPills } from "@/components/LotteryPills";
 import { LiveWatcher } from "@/components/LiveWatcher";
 import { FAQ } from "@/components/FAQ";
 import { JsonLd } from "@/components/JsonLd";
@@ -93,6 +94,7 @@ export async function HomeView({ lang }: { lang: Locale }) {
               {h.oldBtn}
             </Link>
           </div>
+          <LotteryPills lang={lang} className="mt-3" />
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {SLOTS.map((x) => (
               <DrawCard key={x} slot={x} date={today} result={draws[x]} isToday schedule={s.schedule} firstAmount={s.prizes.first} lang={lang} />

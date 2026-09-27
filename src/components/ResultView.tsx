@@ -13,6 +13,7 @@ import { renderMarkdown } from "@/lib/markdown";
 import { mediaUrl } from "@/lib/storage";
 import { fingerprint } from "@/lib/live";
 import { PageHero } from "./PageHero";
+import { LotteryPills } from "./LotteryPills";
 import { PrizeTiers } from "./PrizeTiers";
 import { FirstPrize } from "./FirstPrize";
 import { NumberFinder } from "./NumberFinder";
@@ -106,6 +107,7 @@ export async function ResultView({
           {result?.drawNo && <Meta icon={<Hash className="size-3.5" />}>{fmt(t.common.drawNo, { n: result.drawNo })}</Meta>}
           {hasData && updatedSameDay && <Meta icon={<RefreshCw className="size-3.5" />}>{fmt(t.common.updated, { t: formatISTL(t, result!.updatedAt) })}</Meta>}
         </div>
+        <LotteryPills lang={lang} className="mt-4" />
       </PageHero>
 
       <div className="wrap mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">

@@ -4,6 +4,7 @@ import { todayIST } from "@/lib/time";
 import { fmt, getDict, lp, monthLabelL, type Locale } from "@/lib/i18n";
 import { dateJumpText } from "@/lib/i18n/ui";
 import { PageHero } from "./PageHero";
+import { LotteryPills } from "./LotteryPills";
 import { MonthCalendar } from "./MonthCalendar";
 import { DaysTable } from "./DaysTable";
 import { DateJump } from "./DateJump";
@@ -23,7 +24,9 @@ export async function ArchiveView({ month, isIndex, lang = "en" }: { month: stri
         eyebrow={a.eyebrow}
         title={isIndex ? a.titleIndex : fmt(a.titleMonth, { month: label })}
         subtitle={isIndex ? a.subIndex : fmt(a.subMonth, { month: label })}
-      />
+      >
+        <LotteryPills lang={lang} className="mt-6" />
+      </PageHero>
       <div className="wrap mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-8">
           <MonthCalendar month={month} days={days} today={today} lang={lang} />

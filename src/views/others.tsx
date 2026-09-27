@@ -18,6 +18,7 @@ import { lotteryText, stateName } from "@/lib/i18n/lotteryText";
 import { dateJumpText } from "@/lib/i18n/ui";
 import type { LotteryDraw } from "@/lib/db/schema";
 import { PageHero } from "@/components/PageHero";
+import { LotteryPills } from "@/components/LotteryPills";
 import { FAQ } from "@/components/FAQ";
 import { Ad } from "@/components/Ad";
 import { Rich } from "@/components/Rich";
@@ -340,6 +341,7 @@ export async function OtherLivePage({ lang, id }: { lang: Locale; id: OtherId })
         subtitle={fmt(o.ui.todaySub, { name: c.name, date: longDateL(t, today) })}
       >
         {heroChips(lang, id, today)}
+        <LotteryPills lang={lang} current={id} sambad className="mt-4" />
       </PageHero>
 
       <div className="wrap mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -407,6 +409,7 @@ export async function OtherDatePage({ lang, id, params }: { lang: Locale; id: Ot
         subtitle={fmt(o.ui.dateSub, { name: c.name, date: `${weekdayL(t, iso)}, ${longDateL(t, iso)}` })}
       >
         {heroChips(lang, id, iso)}
+        <LotteryPills lang={lang} current={id} sambad className="mt-4" />
       </PageHero>
 
       <div className="wrap mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">

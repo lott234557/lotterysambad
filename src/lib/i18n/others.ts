@@ -6,7 +6,7 @@ import type { OtherId } from "../others/config";
 import type { Locale } from "./config";
 
 type QA = { q: string; a: string };
-type LotteryCopy = { name: string; intro: [string, string]; faq: QA[] };
+type LotteryCopy = { name: string; /** short label for the hero buttons */ btn: string; intro: [string, string]; faq: QA[] };
 
 export type OtherText = {
   ordinals: string[];
@@ -44,6 +44,8 @@ export type OtherText = {
     lotteryCol: string;
     wbDearTitle: string;
     wbOfficialTitle: string;
+    /** label in front of the lottery buttons in page heroes */
+    moreLotteries: string;
   };
   lotteries: Record<OtherId, LotteryCopy>;
 };
@@ -84,10 +86,12 @@ const en: OtherText = {
     lotteryCol: "Lottery",
     wbDearTitle: "Today's Dear lottery results",
     wbOfficialTitle: "Official West Bengal State Lottery draws",
+    moreLotteries: "Other lotteries",
   },
   lotteries: {
     kerala: {
       name: "Kerala Lottery",
+      btn: "Kerala Lottery",
       intro: [
         "The **Kerala State Lotteries** department holds one draw every day at **3:00 PM** at Gorky Bhavan, Thiruvananthapuram. Each day has its own lottery – Bhagyathara (Monday), Sthree Sakthi (Tuesday), Dhanalekshmi (Wednesday), Karunya Plus (Thursday), Suvarna Keralam (Friday), Karunya (Saturday) and Samrudhi (Sunday) – with a **₹1 crore first prize** and a ₹50 ticket.",
         "Results start coming in from about 3:00 PM and the complete list with all nine prize tiers is usually ready by 4:30 PM. This page fetches it automatically; ticket numbers are shown with their series letters (for example RA 494226) and the lower prizes by their last four digits.",
@@ -100,6 +104,7 @@ const en: OtherText = {
     },
     punjab: {
       name: "Punjab State Lottery",
+      btn: "Punjab Lottery",
       intro: [
         "**Punjab State Lotteries** run the daily **Dear 50** weekly draws at **6:30 PM** – Beast (Monday), Bronco (Tuesday), Buster (Wednesday), Chief (Thursday), Colt (Friday), Jackal (Saturday) and Ranger (Sunday) – plus monthly Dear 20, Dear 100, Dear 200 and Dear 500 draws and big festival bumpers such as the Lohri, Holi, Vaisakhi, Rakhi, Puja and Diwali bumpers.",
         "Punjab publishes its results as an official result sheet, so each draw on this page shows the first prize and the complete result image, fetched automatically after the draw.",
@@ -112,6 +117,7 @@ const en: OtherText = {
     },
     maharashtra: {
       name: "Maharashtra Lottery",
+      btn: "Maharashtra Lottery",
       intro: [
         "The **Maharashtra State Lottery** runs several small weekly draws every afternoon, usually between **4:15 PM and 5:00 PM** – Vaibhavlaxmi, Sahyadri, Gajlaxmi, Ganeshlaxmi, Akarshak and others – plus monthly lotteries and festival bumpers.",
         "All draws of the day are listed on this page with the complete prize list. Tickets are written as series-number, for example VL-08-6375; lower prizes are matched on the last four digits.",
@@ -124,6 +130,7 @@ const en: OtherText = {
     },
     westbengal: {
       name: "West Bengal State Lottery",
+      btn: "West Bengal Lottery",
       intro: [
         "When people in West Bengal search for the **lottery result**, they usually mean the daily **Dear lottery** draws at **1 PM, 6 PM and 8 PM** that are sold across the state. This page shows those results live, updated automatically as soon as each draw is declared.",
         "The West Bengal government also runs its own State Lottery with weekly draws and festival bumpers (New Year, Holi, Nababarsha, Rathayatra, Puja and Diwali). When an official West Bengal draw is published it is listed below as well.",
@@ -173,10 +180,12 @@ const hi: OtherText = {
     lotteryCol: "लॉटरी",
     wbDearTitle: "आज के डियर लॉटरी रिजल्ट",
     wbOfficialTitle: "पश्चिम बंगाल राज्य लॉटरी के आधिकारिक ड्रॉ",
+    moreLotteries: "अन्य लॉटरी",
   },
   lotteries: {
     kerala: {
       name: "केरल लॉटरी",
+      btn: "केरल लॉटरी",
       intro: [
         "**केरल राज्य लॉटरी** विभाग हर दिन **दोपहर 3:00 बजे** तिरुवनंतपुरम के गोर्की भवन में एक ड्रॉ करता है। हर दिन की अपनी लॉटरी है – भाग्यधारा (सोमवार), स्त्री शक्ति (मंगलवार), धनलक्ष्मी (बुधवार), करुण्य प्लस (गुरुवार), सुवर्ण केरलम (शुक्रवार), करुण्य (शनिवार) और समृद्धि (रविवार) – **₹1 करोड़ पहला इनाम** और ₹50 का टिकट।",
         "रिजल्ट लगभग 3:00 बजे से आने लगते हैं और सभी नौ इनाम श्रेणियों वाली पूरी सूची आमतौर पर 4:30 बजे तक तैयार हो जाती है। यह पेज इसे अपने आप लाता है; टिकट नंबर सीरीज़ अक्षरों के साथ (जैसे RA 494226) और छोटे इनाम आखिरी चार अंकों से दिखाए जाते हैं।",
@@ -189,6 +198,7 @@ const hi: OtherText = {
     },
     punjab: {
       name: "पंजाब राज्य लॉटरी",
+      btn: "पंजाब लॉटरी",
       intro: [
         "**पंजाब राज्य लॉटरी** हर दिन **शाम 6:30 बजे** **डियर 50** साप्ताहिक ड्रॉ करती है – बीस्ट (सोमवार), ब्रोंको (मंगलवार), बस्टर (बुधवार), चीफ (गुरुवार), कोल्ट (शुक्रवार), जैकल (शनिवार) और रेंजर (रविवार) – साथ में मासिक डियर 20, डियर 100, डियर 200 और डियर 500 ड्रॉ और लोहड़ी, होली, वैसाखी, राखी, पूजा और दिवाली जैसे बड़े त्योहारी बंपर।",
         "पंजाब अपने रिजल्ट आधिकारिक रिजल्ट शीट के रूप में जारी करता है, इसलिए इस पेज पर हर ड्रॉ का पहला इनाम और पूरी रिजल्ट इमेज दिखती है, जो ड्रॉ के बाद अपने आप लाई जाती है।",
@@ -201,6 +211,7 @@ const hi: OtherText = {
     },
     maharashtra: {
       name: "महाराष्ट्र लॉटरी",
+      btn: "महाराष्ट्र लॉटरी",
       intro: [
         "**महाराष्ट्र राज्य लॉटरी** हर दोपहर कई छोटे साप्ताहिक ड्रॉ करती है, आमतौर पर **4:15 से 5:00 बजे** के बीच – वैभवलक्ष्मी, सह्याद्री, गजलक्ष्मी, गणेशलक्ष्मी, आकर्षक और अन्य – साथ में मासिक लॉटरी और त्योहारी बंपर।",
         "दिन के सभी ड्रॉ इस पेज पर पूरी इनाम सूची के साथ दिखाए जाते हैं। टिकट सीरीज़-नंबर के रूप में लिखे जाते हैं, जैसे VL-08-6375; छोटे इनाम आखिरी चार अंकों से मिलाए जाते हैं।",
@@ -213,6 +224,7 @@ const hi: OtherText = {
     },
     westbengal: {
       name: "पश्चिम बंगाल राज्य लॉटरी",
+      btn: "पश्चिम बंगाल लॉटरी",
       intro: [
         "पश्चिम बंगाल में लोग जब **लॉटरी रिजल्ट** खोजते हैं, तो उनका मतलब आमतौर पर रोज़ाना **1 PM, 6 PM और 8 PM** के **डियर लॉटरी** ड्रॉ से होता है, जो पूरे राज्य में बिकते हैं। यह पेज इन रिजल्ट को लाइव दिखाता है, हर ड्रॉ घोषित होते ही अपने आप अपडेट।",
         "पश्चिम बंगाल सरकार साप्ताहिक ड्रॉ और त्योहारी बंपर (नया साल, होली, नबबर्ष, रथयात्रा, पूजा और दिवाली) के साथ अपनी राज्य लॉटरी भी चलाती है। जब कोई आधिकारिक पश्चिम बंगाल ड्रॉ प्रकाशित होता है, तो वह भी नीचे दिखाया जाता है।",
@@ -262,10 +274,12 @@ const bn: OtherText = {
     lotteryCol: "লটারি",
     wbDearTitle: "আজকের ডিয়ার লটারি রেজাল্ট",
     wbOfficialTitle: "পশ্চিমবঙ্গ রাজ্য লটারির সরকারি ড্র",
+    moreLotteries: "অন্যান্য লটারি",
   },
   lotteries: {
     kerala: {
       name: "কেরালা লটারি",
+      btn: "কেরালা লটারি",
       intro: [
         "**কেরালা রাজ্য লটারি** দপ্তর প্রতিদিন **দুপুর 3:00টায়** তিরুবনন্তপুরমের গোর্কি ভবনে একটি ড্র করে। প্রতিটি দিনের নিজস্ব লটারি আছে – ভাগ্যধারা (সোমবার), স্ত্রী শক্তি (মঙ্গলবার), ধনলক্ষ্মী (বুধবার), করুণ্য প্লাস (বৃহস্পতিবার), সুবর্ণ কেরলম (শুক্রবার), করুণ্য (শনিবার) ও সমৃদ্ধি (রবিবার) – **₹1 কোটি প্রথম পুরস্কার** ও ₹50 টিকিট।",
         "রেজাল্ট প্রায় 3:00টা থেকে আসতে শুরু করে এবং নয়টি পুরস্কার স্তরের সম্পূর্ণ তালিকা সাধারণত 4:30-এর মধ্যে তৈরি হয়ে যায়। এই পেজ তা নিজে থেকেই নিয়ে আসে; টিকিট নম্বর সিরিজ অক্ষরসহ (যেমন RA 494226) এবং ছোট পুরস্কার শেষ চার সংখ্যায় দেখানো হয়।",
@@ -278,6 +292,7 @@ const bn: OtherText = {
     },
     punjab: {
       name: "পাঞ্জাব রাজ্য লটারি",
+      btn: "পাঞ্জাব লটারি",
       intro: [
         "**পাঞ্জাব রাজ্য লটারি** প্রতিদিন **সন্ধ্যা 6:30-এ** **ডিয়ার 50** সাপ্তাহিক ড্র করে – বিস্ট (সোমবার), ব্রঙ্কো (মঙ্গলবার), বাস্টার (বুধবার), চিফ (বৃহস্পতিবার), কোল্ট (শুক্রবার), জ্যাকাল (শনিবার) ও রেঞ্জার (রবিবার) – সঙ্গে মাসিক ডিয়ার 20, ডিয়ার 100, ডিয়ার 200 ও ডিয়ার 500 ড্র এবং লোহরি, হোলি, বৈশাখী, রাখি, পুজো ও দীপাবলির মতো বড় উৎসব বাম্পার।",
         "পাঞ্জাব তাদের রেজাল্ট সরকারি রেজাল্ট শিট হিসেবে প্রকাশ করে, তাই এই পেজে প্রতিটি ড্রয়ের প্রথম পুরস্কার ও সম্পূর্ণ রেজাল্ট ছবি দেখা যায়, যা ড্রয়ের পর নিজে থেকেই আনা হয়।",
@@ -290,6 +305,7 @@ const bn: OtherText = {
     },
     maharashtra: {
       name: "মহারাষ্ট্র লটারি",
+      btn: "মহারাষ্ট্র লটারি",
       intro: [
         "**মহারাষ্ট্র রাজ্য লটারি** প্রতি বিকেলে কয়েকটি ছোট সাপ্তাহিক ড্র করে, সাধারণত **4:15 থেকে 5:00-এর** মধ্যে – বৈভবলক্ষ্মী, সহ্যাদ্রি, গজলক্ষ্মী, গণেশলক্ষ্মী, আকর্ষক ও অন্যান্য – সঙ্গে মাসিক লটারি ও উৎসব বাম্পার।",
         "দিনের সব ড্র এই পেজে সম্পূর্ণ পুরস্কার তালিকাসহ দেখানো হয়। টিকিট সিরিজ-নম্বর আকারে লেখা হয়, যেমন VL-08-6375; ছোট পুরস্কার শেষ চার সংখ্যায় মেলানো হয়।",
@@ -302,6 +318,7 @@ const bn: OtherText = {
     },
     westbengal: {
       name: "পশ্চিমবঙ্গ রাজ্য লটারি",
+      btn: "পশ্চিমবঙ্গ লটারি",
       intro: [
         "পশ্চিমবঙ্গে মানুষ যখন **লটারি রেজাল্ট** খোঁজেন, তখন সাধারণত বোঝানো হয় প্রতিদিনের **1 PM, 6 PM ও 8 PM**-এর **ডিয়ার লটারি** ড্র, যা গোটা রাজ্যে বিক্রি হয়। এই পেজ সেই রেজাল্ট লাইভ দেখায়, প্রতিটি ড্র ঘোষণার সঙ্গে সঙ্গে নিজে থেকেই আপডেট।",
         "পশ্চিমবঙ্গ সরকার সাপ্তাহিক ড্র ও উৎসব বাম্পার (ইংরেজি নববর্ষ, হোলি, বাংলা নববর্ষ, রথযাত্রা, পুজো ও দীপাবলি) নিয়ে নিজস্ব রাজ্য লটারিও চালায়। কোনো সরকারি পশ্চিমবঙ্গ ড্র প্রকাশিত হলে তা নিচেও দেখানো হয়।",
@@ -351,10 +368,12 @@ const ml: OtherText = {
     lotteryCol: "ലോട്ടറി",
     wbDearTitle: "ഇന്നത്തെ ഡിയർ ലോട്ടറി ഫലങ്ങൾ",
     wbOfficialTitle: "പശ്ചിമ ബംഗാൾ സംസ്ഥാന ലോട്ടറിയുടെ ഔദ്യോഗിക നറുക്കെടുപ്പുകൾ",
+    moreLotteries: "മറ്റ് ലോട്ടറികൾ",
   },
   lotteries: {
     kerala: {
       name: "കേരള ലോട്ടറി",
+      btn: "കേരള ലോട്ടറി",
       intro: [
         "**കേരള സംസ്ഥാന ഭാഗ്യക്കുറി** വകുപ്പ് എല്ലാ ദിവസവും **ഉച്ചയ്ക്ക് 3:00-ന്** തിരുവനന്തപുരം ഗോർക്കി ഭവനിൽ നറുക്കെടുപ്പ് നടത്തുന്നു. ഓരോ ദിവസത്തിനും സ്വന്തം ഭാഗ്യക്കുറി – ഭാഗ്യതാര (തിങ്കൾ), സ്ത്രീ ശക്തി (ചൊവ്വ), ധനലക്ഷ്മി (ബുധൻ), കാരുണ്യ പ്ലസ് (വ്യാഴം), സുവർണ്ണ കേരളം (വെള്ളി), കാരുണ്യ (ശനി), സമൃദ്ധി (ഞായർ) – **₹1 കോടി ഒന്നാം സമ്മാനവും** ₹50 ടിക്കറ്റും.",
         "ഫലങ്ങൾ ഏകദേശം 3:00 മുതൽ വന്നുതുടങ്ങും; ഒമ്പത് സമ്മാനങ്ങളും ഉൾപ്പെട്ട സമ്പൂർണ്ണ പട്ടിക സാധാരണയായി 4:30-ഓടെ തയ്യാറാകും. ഈ പേജ് അത് സ്വയം കൊണ്ടുവരുന്നു; ടിക്കറ്റ് നമ്പറുകൾ സീരീസ് അക്ഷരങ്ങളോടെയും (ഉദാ. RA 494226) ചെറിയ സമ്മാനങ്ങൾ അവസാന നാല് അക്കങ്ങളായും കാണിക്കുന്നു.",
@@ -367,6 +386,7 @@ const ml: OtherText = {
     },
     punjab: {
       name: "പഞ്ചാബ് സംസ്ഥാന ലോട്ടറി",
+      btn: "പഞ്ചാബ് ലോട്ടറി",
       intro: [
         "**പഞ്ചാബ് സംസ്ഥാന ലോട്ടറി** എല്ലാ ദിവസവും **വൈകിട്ട് 6:30-ന്** **ഡിയർ 50** പ്രതിവാര നറുക്കെടുപ്പ് നടത്തുന്നു – ബീസ്റ്റ് (തിങ്കൾ), ബ്രോങ്കോ (ചൊവ്വ), ബസ്റ്റർ (ബുധൻ), ചീഫ് (വ്യാഴം), കോൾട്ട് (വെള്ളി), ജാക്കൽ (ശനി), റേഞ്ചർ (ഞായർ) – കൂടാതെ പ്രതിമാസ ഡിയർ 20, ഡിയർ 100, ഡിയർ 200, ഡിയർ 500 നറുക്കെടുപ്പുകളും ലോഹ്രി, ഹോളി, വൈശാഖി, രാഖി, പൂജ, ദീപാവലി തുടങ്ങിയ വലിയ ഉത്സവ ബമ്പറുകളും.",
         "പഞ്ചാബ് ഫലങ്ങൾ ഔദ്യോഗിക ഫല ഷീറ്റായാണ് പ്രസിദ്ധീകരിക്കുന്നത്; അതിനാൽ ഈ പേജിൽ ഓരോ നറുക്കെടുപ്പിന്റെയും ഒന്നാം സമ്മാനവും സമ്പൂർണ്ണ ഫല ചിത്രവും കാണാം – നറുക്കെടുപ്പിന് ശേഷം സ്വയം കൊണ്ടുവരുന്നു.",
@@ -379,6 +399,7 @@ const ml: OtherText = {
     },
     maharashtra: {
       name: "മഹാരാഷ്ട്ര ലോട്ടറി",
+      btn: "മഹാരാഷ്ട്ര ലോട്ടറി",
       intro: [
         "**മഹാരാഷ്ട്ര സംസ്ഥാന ലോട്ടറി** എല്ലാ ഉച്ചകഴിഞ്ഞും നിരവധി ചെറിയ പ്രതിവാര നറുക്കെടുപ്പുകൾ നടത്തുന്നു, സാധാരണയായി **4:15-നും 5:00-നും** ഇടയിൽ – വൈഭവലക്ഷ്മി, സഹ്യാദ്രി, ഗജലക്ഷ്മി, ഗണേശലക്ഷ്മി, ആകർഷക് തുടങ്ങിയവ – കൂടാതെ പ്രതിമാസ ലോട്ടറികളും ഉത്സവ ബമ്പറുകളും.",
         "ദിവസത്തെ എല്ലാ നറുക്കെടുപ്പുകളും സമ്പൂർണ്ണ സമ്മാനപ്പട്ടികയോടെ ഈ പേജിൽ കാണാം. ടിക്കറ്റുകൾ സീരീസ്-നമ്പർ രൂപത്തിലാണ്, ഉദാ. VL-08-6375; ചെറിയ സമ്മാനങ്ങൾ അവസാന നാല് അക്കങ്ങൾ വച്ച് ഒത്തുനോക്കുന്നു.",
@@ -391,6 +412,7 @@ const ml: OtherText = {
     },
     westbengal: {
       name: "പശ്ചിമ ബംഗാൾ സംസ്ഥാന ലോട്ടറി",
+      btn: "പശ്ചിമ ബംഗാൾ ലോട്ടറി",
       intro: [
         "പശ്ചിമ ബംഗാളിൽ ആളുകൾ **ലോട്ടറി ഫലം** തിരയുമ്പോൾ സാധാരണയായി ഉദ്ദേശിക്കുന്നത് സംസ്ഥാനത്തുടനീളം വിൽക്കുന്ന ദിവസേനയുള്ള **1 PM, 6 PM, 8 PM** **ഡിയർ ലോട്ടറി** നറുക്കെടുപ്പുകളാണ്. ഈ പേജ് ആ ഫലങ്ങൾ തത്സമയം കാണിക്കുന്നു – ഓരോ നറുക്കെടുപ്പും പ്രഖ്യാപിച്ചാലുടൻ സ്വയം അപ്ഡേറ്റ്.",
         "പ്രതിവാര നറുക്കെടുപ്പുകളും ഉത്സവ ബമ്പറുകളുമായി (പുതുവർഷം, ഹോളി, ബംഗാളി പുതുവർഷം, രഥയാത്ര, പൂജ, ദീപാവലി) പശ്ചിമ ബംഗാൾ സർക്കാർ സ്വന്തം സംസ്ഥാന ലോട്ടറിയും നടത്തുന്നു. ഔദ്യോഗിക പശ്ചിമ ബംഗാൾ നറുക്കെടുപ്പ് പ്രസിദ്ധീകരിക്കുമ്പോൾ അതും താഴെ കാണിക്കും.",
