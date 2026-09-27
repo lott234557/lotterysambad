@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { desc, sql } from "drizzle-orm";
+import { desc, inArray, like, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { results, posts, pages, media, scrapeLogs } from "@/lib/db/schema";
+import { results, posts, pages, media, scrapeLogs, settings as settingsT } from "@/lib/db/schema";
 import { SLOTS, SLOT_META } from "@/lib/draws";
 import { getResultsForDate } from "@/lib/results";
 import { siteUrl, getSettingsFresh } from "@/lib/settings";
@@ -23,13 +23,28 @@ export default async function Dashboard() {
   // layout and page render in parallel – make sure tables exist before querying
   await ensureSetup().catch(() => {});
   const today = todayIST();
-  const [draws, counts, logs, s, otherToday] = await Promise.all([
+  const [draws, counts, logs, s, otherToday, beats] = await Promise.all([
     getResultsForDate(today),
     Promise.all([db.$count(results), db.$count(posts), db.$count(pages), db.select({ n: sql<number>`count(*)::int`, bytes: sql<number>`coalesce(sum(size),0)::bigint` }).from(media)]),
     db.select().from(scrapeLogs).orderBy(desc(scrapeLogs.runAt)).limit(12),
     getSettingsFresh(),
     db.select().from(lotteryDraws).where(eqOp(lotteryDraws.drawDate, today)).catch(() => []),
+    // heartbeats of the automatic triggers + the most recent auto-fetch lock (who fetched last)
+    db
+      .select({ key: settingsT.key, value: settingsT.value, updatedAt: settingsT.updatedAt })
+      .from(settingsT)
+      .where(or(inArray(settingsT.key, ["hb:cron", "hb:vercel"]), like(settingsT.key, "lock:auto:%")))
+      .catch(() => []),
   ]);
+  const beatAt = (k: string) => beats.find((b) => b.key === k)?.updatedAt?.toISOString() ?? null;
+  const lastLock = beats.filter((b) => b.key.startsWith("lock:auto:")).sort((a, b) => +b.updatedAt - +a.updatedAt)[0];
+  const health = {
+    cron: beatAt("hb:cron"),
+    vercel: beatAt("hb:vercel"),
+    last: lastLock
+      ? { what: lastLock.key.replace("lock:auto:", ""), at: lastLock.updatedAt.toISOString(), by: String((lastLock.value as { by?: string })?.by ?? "").split(" ")[0] }
+      : null,
+  };
   const ONAME: Record<OtherId, string> = { kerala: "Kerala", punjab: "Punjab", maharashtra: "Maharashtra", westbengal: "West Bengal" };
   const byLottery = (id: OtherId) => otherToday.filter((d) => d.lottery === id);
   const othersState = Object.fromEntries(
@@ -55,6 +70,7 @@ export default async function Dashboard() {
           enabled={s.scraperEnabled}
           complete={{ "1pm": !!draws["1pm"]?.isComplete, "6pm": !!draws["6pm"]?.isComplete, "8pm": !!draws["8pm"]?.isComplete }}
           others={othersState}
+          health={health}
         />
       </div>
       <div className="grid gap-4 md:grid-cols-3">
@@ -130,14 +146,26 @@ export default async function Dashboard() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Panel title="Extra guarantee: cron URL (optional)" desc="Auto-fetch already runs by itself when visitors are on the site. To fetch even when nobody is online, ping this URL every minute at cron-job.org (free). Outside draw windows it returns instantly.">
-          <CopyField value={cronUrl} secret />
-          <ul className="mt-4 space-y-1.5 text-xs text-muted">
-            <li>• Windows (IST): 1:01–1:20 PM, 6:01–6:20 PM, 8:01–8:20 PM (every 25 s), then every 2 min until the draw is complete.</li>
-            <li>• Catch-up: <code>/api/cron/catchup</code> fills any missing draw of the last 2 days (Vercel daily cron runs it at ~10:10 PM IST).</li>
-            <li>• Each run is logged under <Link href="/admin/logs" className="text-brand-2 underline">Scraper Logs</Link>.</li>
-          </ul>
-        </Panel>
+        <div id="cron" className="scroll-mt-24">
+          <Panel
+            title="Every-minute cron – recommended (free, 2 minutes)"
+            desc="Vercel's free plan cannot run a job every minute, so without this the results are fetched while someone has the site open, plus once an hour by the built-in safety sweep. With it, every result is fetched within ~1 minute even when nobody is online."
+          >
+            <CopyField value={cronUrl} secret />
+            <ol className="mt-4 list-decimal space-y-1.5 pl-5 text-xs text-muted">
+              <li>Sign up free at <a href="https://cron-job.org" target="_blank" rel="noreferrer" className="font-bold text-brand-2 underline">cron-job.org</a> → <b>Dashboard → Create cronjob</b>.</li>
+              <li>Title: <b>Lottery auto-fetch</b>. URL: press <b>Copy</b> above and paste it.</li>
+              <li>Execution schedule: <b>Every 1 minute</b>. Leave everything else as it is and press <b>Create</b>.</li>
+              <li>Press <b>Test run</b> – it should answer <code>200</code> with <code>&quot;accepted&quot;:true</code>. The “Every-minute cron” line in the Auto-fetch panel turns green during the next draw window.</li>
+            </ol>
+            <ul className="mt-4 space-y-1.5 border-t border-line pt-3 text-xs text-muted">
+              <li>• Outside the draw windows a call does nothing (no database use), so it is safe to run all day.</li>
+              <li>• Windows (IST): 1:01–1:20 PM, 6:01–6:20 PM, 8:01–8:20 PM every 25 s, then every 2 min until complete; Kerala, Maharashtra and Punjab have their own windows.</li>
+              <li>• Built in, no setup: hourly safety sweep 12:30 PM–11:30 PM IST (<code>/api/cron/sweep</code>) and a nightly catch-up of the last 2 days.</li>
+              <li>• Each run is logged under <Link href="/admin/logs" className="text-brand-2 underline">Scraper Logs</Link>.</li>
+            </ul>
+          </Panel>
+        </div>
         <Panel title="Import old results" desc="Fetches missing results for a date range from the sources (3 draws per day).">
           <Backfill today={today} />
         </Panel>

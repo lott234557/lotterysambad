@@ -89,7 +89,7 @@ export const getOtherDateKeys = async () =>
   safeRead(
     () =>
       db
-        .select({ lottery: lotteryDraws.lottery, drawDate: lotteryDraws.drawDate, updatedAt: sql<Date>`max(${lotteryDraws.updatedAt})` })
+        .select({ lottery: lotteryDraws.lottery, drawDate: lotteryDraws.drawDate, updatedAt: sql<Date>`max(${lotteryDraws.updatedAt})`.mapWith(lotteryDraws.updatedAt) })
         .from(lotteryDraws)
         .where(pub)
         .groupBy(lotteryDraws.lottery, lotteryDraws.drawDate)

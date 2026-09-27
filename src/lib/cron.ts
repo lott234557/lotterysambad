@@ -13,7 +13,23 @@ import { lotteryDraws } from "./db/schema";
 import { and, eq } from "drizzle-orm";
 import { scrapeOther, type OtherOutcome } from "./others/scrape";
 
-export async function runCron(mode: "auto" | "catchup", opts: { days?: number } = {}) {
+/** Run async jobs with at most `n` at a time. */
+async function pool<T>(items: T[], n: number, fn: (x: T) => Promise<void>) {
+  const queue = [...items];
+  await Promise.all(
+    Array.from({ length: Math.min(n, queue.length) }, async () => {
+      while (queue.length) await fn(queue.shift()!);
+    }),
+  );
+}
+
+/**
+ * auto    – every-minute cron: fetches only inside the draw windows (same lock as visitors / dashboard)
+ * sweep   – hourly safety net (Vercel daily crons, one per hour of the afternoon/evening): fetches every
+ *           draw of TODAY that has been drawn but is still missing or incomplete, whatever the time
+ * catchup – nightly: the same for the last N days + housekeeping
+ */
+export async function runCron(mode: "auto" | "catchup" | "sweep", opts: { days?: number } = {}) {
   const now = nowIST();
   const today = now.iso;
 
@@ -30,10 +46,11 @@ export async function runCron(mode: "auto" | "catchup", opts: { days?: number } 
     };
   }
 
-  // catch-up: housekeeping + fill anything missing in the last N days
+  // catch-up / sweep: fill anything missing (sweep = today only, no housekeeping)
   const outcomes: ScrapeOutcome[] = [];
-  await db.delete(scrapeLogs).where(lt(scrapeLogs.runAt, new Date(Date.now() - 30 * 864e5))).catch(() => {});
-  const days = Math.min(Math.max(opts.days ?? 2, 1), 7);
+  const trigger = mode === "sweep" ? "sweep" : "catch-up";
+  if (mode === "catchup") await db.delete(scrapeLogs).where(lt(scrapeLogs.runAt, new Date(Date.now() - 30 * 864e5))).catch(() => {});
+  const days = mode === "sweep" ? 1 : Math.min(Math.max(opts.days ?? 2, 1), 7);
   const jobs: { date: string; slot: Slot }[] = [];
   for (let i = 0; i < days; i++) {
     const date = addDays(today, -i);
@@ -46,13 +63,14 @@ export async function runCron(mode: "auto" | "catchup", opts: { days?: number } 
   const settings = await getSettingsFresh();
   if (!settings.scraperEnabled) return { ok: true, idle: true, notes: ["scraper disabled in settings"], outcomes };
 
-  for (const j of jobs) {
+  // Sambad draws: 3 at a time (finished draws return instantly), other lotteries in parallel with them
+  const sambad = pool(jobs, 3, async (j) => {
     try {
-      outcomes.push(await scrapeDraw(j.date, j.slot, { trigger: "catch-up" }));
+      outcomes.push(await scrapeDraw(j.date, j.slot, { trigger }));
     } catch (e) {
       outcomes.push({ date: j.date, slot: j.slot, status: "error", message: (e as Error).message, changed: false });
     }
-  }
+  });
   // other state lotteries (Kerala / Punjab / Maharashtra) – dates that are already complete are skipped
   const others: OtherOutcome[] = [];
   const otherJobs: { id: OtherId; date: string }[] = [];
@@ -70,17 +88,18 @@ export async function runCron(mode: "auto" | "catchup", opts: { days?: number } 
       otherJobs.push({ id, date });
     }
   }
-  await Promise.all(
-    OTHER_IDS.map(async (id) => {
+  await Promise.all([
+    sambad,
+    ...OTHER_IDS.map(async (id) => {
       for (const j of otherJobs.filter((x) => x.id === id)) {
         try {
-          others.push(await scrapeOther(id, j.date, { trigger: "catch-up" }));
+          others.push(await scrapeOther(id, j.date, { trigger }));
         } catch (e) {
           others.push({ lottery: id, date: j.date, status: "error", message: (e as Error).message, changed: false, draws: 0 });
         }
       }
     }),
-  );
+  ]);
   if (outcomes.some((o) => o.changed) || others.some((o) => o.changed)) revalidateSite();
   return { ok: true, idle: false, notes: [], outcomes, others };
 }

@@ -40,6 +40,23 @@ async function acquire(key: string, gapSeconds: number, note: string): Promise<b
   return rows.length > 0;
 }
 
+/**
+ * Heartbeat for the dashboard ("is the every-minute cron really calling us?").
+ * Only written while a draw window is open (the database is in use then anyway), at most once a minute,
+ * so an idle database can still go to sleep outside the draw times.
+ */
+export async function beat(key: "hb:cron" | "hb:vercel", note: string) {
+  const sql = getSql();
+  await sql`
+    insert into settings (key, value, updated_at)
+    values (${key}, ${JSON.stringify({ note })}::jsonb, now())
+    on conflict (key) do update set value = excluded.value, updated_at = now()
+    where settings.updated_at < now() - interval '50 seconds'`;
+}
+
+/** Draws seen complete today (per warm server instance) – lets repeated calls skip the database entirely. */
+const completeMemo = new Set<string>();
+
 let rolledFor = "";
 
 /** Once per IST day (first call after midnight): clear the page cache so "today" pages switch to the new date. */
@@ -79,6 +96,16 @@ export async function autoFetch(trigger: Trigger): Promise<AutoFetchResult> {
   const otherPhases = OTHER_IDS.map((id) => ({ id, phase: windowPhase(OTHER[id], now.minuteOfDay) })).filter((x) => x.phase);
   if (!res.due.length && !otherPhases.length) return res;
 
+  if (completeMemo.size > 200) completeMemo.clear();
+  // everything that is due was already seen complete on this instance → nothing to do, no DB round trip
+  const openSlots = res.due.filter((d) => !completeMemo.has(`${today}:${d.slot}`));
+  const openOthers = otherPhases.filter((x) => !completeMemo.has(`${today}:${x.id}:${x.phase}`));
+  if (!openSlots.length && !openOthers.length) {
+    res.skipped.push(...res.due.map((d) => `${d.slot}: complete`), ...otherPhases.map((x) => `${x.id}: complete`));
+    return res;
+  }
+  if (trigger === "cron") await beat("hb:cron", new Date().toISOString()).catch(() => {});
+
   const settings = await getSettingsFresh();
   if (!settings.scraperEnabled) {
     res.enabled = false;
@@ -111,6 +138,7 @@ export async function autoFetch(trigger: Trigger): Promise<AutoFetchResult> {
     for (const d of res.due) {
       const r = state.get(d.slot);
       if (r?.isComplete) {
+        completeMemo.add(`${today}:${d.slot}`);
         res.skipped.push(`${d.slot}: complete`);
         continue;
       }
@@ -125,7 +153,9 @@ export async function autoFetch(trigger: Trigger): Promise<AutoFetchResult> {
         label: d.slot,
         run: async () => {
           try {
-            res.ran.push(await scrapeDraw(today, d.slot, { trigger: `auto:${trigger}`, skipMemo: true }));
+            const out = await scrapeDraw(today, d.slot, { trigger: `auto:${trigger}`, skipMemo: true });
+            if (out.status === "success") completeMemo.add(`${today}:${d.slot}`);
+            res.ran.push(out);
           } catch (e) {
             res.ran.push({ date: today, slot: d.slot, status: "error", message: (e as Error).message, changed: false });
           }
@@ -146,6 +176,9 @@ export async function autoFetch(trigger: Trigger): Promise<AutoFetchResult> {
       .where(and(eq(lotteryDraws.lottery, id), eq(lotteryDraws.drawDate, today)));
     const done = rows.length > 0 && rows.every((r) => r.isComplete) && (!OTHER[id].multi || phase === "slow");
     if (done) {
+      // multi-draw lotteries (Punjab / Maharashtra) only count as done in the slow phase – remember per phase
+      completeMemo.add(`${today}:${id}:${phase}`);
+      if (!OTHER[id].multi) for (const ph of ["fast", "slow"]) completeMemo.add(`${today}:${id}:${ph}`);
       res.skipped.push(`${id}: complete`);
       continue;
     }

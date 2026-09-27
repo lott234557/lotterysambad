@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Zap, ZapOff, Radio, Clock3, CheckCircle2 } from "lucide-react";
+import { Zap, ZapOff, Radio, Clock3, CheckCircle2, AlertTriangle, Users, Timer, ShieldCheck } from "lucide-react";
 import { autoFetchTickAction, setAutoFetchAction } from "@/app/admin/actions";
 import { SLOTS, SLOT_META, type Slot } from "@/lib/draws";
 import { dueSlots, nextWindow, windowLabel, FAST_GAP_S, SLOW_GAP_S } from "@/lib/windows";
@@ -12,6 +12,27 @@ import { OTHER, OTHER_IDS, clockLabel, windowPhase, type OtherId } from "@/lib/o
 const ONAME: Record<OtherId, string> = { kerala: "Kerala", punjab: "Punjab", maharashtra: "Maharashtra", westbengal: "West Bengal" };
 
 const TICK_MS = 20_000;
+
+export type TriggerHealth = {
+  /** last call of the every-minute cron (cron-job.org) seen during a draw window */
+  cron: string | null;
+  /** last run of the hourly Vercel safety sweep */
+  vercel: string | null;
+  /** most recent automatic fetch: which draw, when, and who triggered it (visitor / admin / cron) */
+  last: { what: string; at: string; by: string } | null;
+};
+
+const WHAT: Record<string, string> = { "1pm": "1 PM draw", "6pm": "6 PM draw", "8pm": "8 PM draw", ...ONAME };
+const BY: Record<string, string> = { visitor: "a visitor", admin: "this dashboard", cron: "the every-minute cron" };
+
+/** "6:13 PM" (today) or "6:13 PM, 26 Sep" (IST) */
+function istTime(iso: string, today: string) {
+  const n = nowIST(new Date(iso).getTime());
+  const t = `${n.hours % 12 || 12}:${String(n.minutes).padStart(2, "0")} ${n.hours < 12 ? "AM" : "PM"}`;
+  if (n.iso === today) return t;
+  const [, m, d] = n.iso.split("-");
+  return `${t}, ${Number(d)} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][Number(m) - 1]}`;
+}
 
 function hm(ms: number) {
   const m = Math.max(0, Math.round(ms / 60_000));
@@ -26,11 +47,13 @@ export function AutoFetchPanel({
   enabled,
   complete,
   others,
+  health,
 }: {
   enabled: boolean;
   complete: Record<Slot, boolean>;
   /** other lotteries: auto-fetch on/off and whether today's draws are complete */
   others: Record<OtherId, { enabled: boolean; done: boolean }>;
+  health?: TriggerHealth;
 }) {
   const router = useRouter();
   const now = useNow(1000);
@@ -118,7 +141,7 @@ export function AutoFetchPanel({
           <Clock3 className="size-4 text-brand-2" /> Next: <b>{SLOT_META[nw.slot].label}</b> – starts automatically in {hm(startsIn)}
         </span>
       );
-    } else status = <span className="text-muted">No more draws today. Catch-up runs at ~10:10 PM IST.</span>;
+    } else status = <span className="text-muted">No more draws today. The nightly catch-up fills anything missing.</span>;
   }
 
   return (
@@ -163,6 +186,8 @@ export function AutoFetchPanel({
         ))}
       </div>
 
+      {n && health && <Triggers health={health} nowMs={now!} today={n.iso} inWindow={due.length > 0 || dueO.length > 0} />}
+
       {log.length > 0 && (
         <ul className="mt-3 space-y-1 border-t border-line pt-3 text-[0.72rem] text-muted">
           {log.map((l, i) => (
@@ -174,10 +199,81 @@ export function AutoFetchPanel({
       )}
 
       <ul className="mt-3 space-y-1 border-t border-line pt-3 text-[0.72rem] text-muted">
-        <li>• Runs by itself whenever visitors are waiting on the site, and every 20 s while this dashboard is open.</li>
         <li>• After each new result the website cache is cleared and open pages refresh automatically.</li>
-        <li>• For fetching even when nobody is online, add the cron URL below at cron-job.org (free).</li>
+        <li>• “Fetch now” buttons below always work too (they re-fetch even a finished draw).</li>
       </ul>
+    </div>
+  );
+}
+
+/** The three things that start an automatic fetch, and whether each one is working. */
+function Triggers({ health, nowMs, today, inWindow }: { health: TriggerHealth; nowMs: number; today: string; inWindow: boolean }) {
+  const ago = (iso: string) => Math.round((nowMs - new Date(iso).getTime()) / 60_000);
+  const rows: { Icon: typeof Users; name: string; tone: "ok" | "warn" | "bad" | "muted"; text: React.ReactNode }[] = [];
+
+  const last = health.last;
+  rows.push({
+    Icon: Users,
+    name: "Last automatic fetch",
+    tone: last ? "ok" : "muted",
+    text: last ? (
+      <>
+        <b>{WHAT[last.what] ?? last.what}</b> at {istTime(last.at, today)} – started by {BY[last.by] ?? last.by}
+      </>
+    ) : (
+      "none recorded yet."
+    ),
+  });
+
+  if (!health.cron)
+    rows.push({
+      Icon: Timer,
+      name: "Every-minute cron",
+      tone: "bad",
+      text: (
+        <>
+          <b>Not set up</b> – when nobody is on the site, results wait for the hourly sweep.{" "}
+          <a href="#cron" className="font-bold text-brand-2 underline">Set it up (2 min)</a>
+        </>
+      ),
+    });
+  else if (inWindow && ago(health.cron) > 3)
+    rows.push({
+      Icon: Timer,
+      name: "Every-minute cron",
+      tone: "warn",
+      text: (
+        <>
+          <b>No call for {ago(health.cron)} min</b> – open cron-job.org and check that the job is enabled (last call {istTime(health.cron, today)}).
+        </>
+      ),
+    });
+  else rows.push({ Icon: Timer, name: "Every-minute cron", tone: "ok", text: <>Working · last call {istTime(health.cron, today)}</> });
+
+  rows.push({
+    Icon: ShieldCheck,
+    name: "Hourly safety sweep",
+    tone: health.vercel ? "ok" : "muted",
+    text: health.vercel ? <>Built in · last run {istTime(health.vercel, today)}</> : <>Built in · runs every hour 12:30 PM–11:30 PM IST (first run after this update is deployed)</>,
+  });
+
+  const toneCls = { ok: "text-ok", warn: "text-gold-2", bad: "text-live", muted: "text-muted" };
+  return (
+    <div className="mt-3 rounded-xl border border-line p-3">
+      <div className="mb-2 text-[0.7rem] font-extrabold uppercase tracking-[0.12em] text-muted">What starts an automatic fetch</div>
+      <ul className="space-y-2 text-[0.8rem]">
+        {rows.map(({ Icon, name, tone, text }) => (
+          <li key={name} className="flex items-start gap-2">
+            <span className={`mt-0.5 shrink-0 ${toneCls[tone]}`}>
+              {tone === "ok" ? <CheckCircle2 className="size-4" /> : tone === "muted" ? <Icon className="size-4" /> : <AlertTriangle className="size-4" />}
+            </span>
+            <span>
+              <b className="font-extrabold">{name}:</b> <span className="text-muted">{text}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[0.72rem] text-muted">Visitors waiting for a result and this dashboard (while open) also start fetches.</p>
     </div>
   );
 }

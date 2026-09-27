@@ -5,6 +5,7 @@ import { Footer } from "./Footer";
 import { BottomNav } from "./BottomNav";
 import { Ad } from "./Ad";
 import { BodyCode } from "./BodyCode";
+import { AutoPing } from "./AutoPing";
 import { getSettings } from "@/lib/settings";
 import { getDict, HREFLANG, type Locale } from "@/lib/i18n";
 import { bottomNav } from "@/lib/nav";
@@ -27,6 +28,7 @@ export async function SiteChrome({ lang, children }: { lang: Locale; children: R
       <Ad slot="footerAbove" className="wrap pt-10" />
       <Footer s={s} lang={lang} />
       <BottomNav items={bottomNav(lang, t)} />
+      <AutoPing />
 
       {s.gaId && (
         <>
