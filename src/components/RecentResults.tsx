@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import type { Result } from "@/lib/db/schema";
 import type { Slot } from "@/lib/draws";
 import { isoToDMY } from "@/lib/time";

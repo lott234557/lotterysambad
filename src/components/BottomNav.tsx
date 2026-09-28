@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { usePathname } from "next/navigation";
 import { House, Sun, Sunset, Moon, CalendarDays } from "lucide-react";
 import { isActive } from "@/lib/nav";

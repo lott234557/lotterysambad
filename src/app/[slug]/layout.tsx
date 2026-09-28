@@ -1,7 +1,6 @@
 import { SiteChrome, siteMetadata } from "@/components/SiteChrome";
 import { isPrefixed } from "@/lib/i18n/config";
 
-export const revalidate = 3600;
 
 type P = { params: Promise<{ slug: string }> };
 

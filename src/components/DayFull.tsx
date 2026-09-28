@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { ArrowRight } from "lucide-react";
 import { SLOTS, SLOT_META, drawNameFor, type Slot } from "@/lib/draws";
 import type { Result } from "@/lib/db/schema";

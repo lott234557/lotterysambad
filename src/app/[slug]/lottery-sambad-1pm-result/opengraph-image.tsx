@@ -6,7 +6,7 @@ import { longDate, todayIST } from "@/lib/time";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 export const alt = "Lottery Sambad 1 PM result today";
-export const revalidate = 1800;
+export const revalidate = 86400; // safety net only – pages are rebuilt on demand when a result arrives and once after midnight (src/lib/revalidate.ts)
 export const generateStaticParams = () => [];
 
 export default async function Image() {

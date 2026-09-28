@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { Clock3, Timer } from "lucide-react";
 import { useNow } from "@/lib/useNow";
 import { nowIST } from "@/lib/time";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { SLOTS } from "@/lib/draws";
 import type { DayRow } from "@/lib/results";
 import { isoToDMY } from "@/lib/time";

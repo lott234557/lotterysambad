@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { SLOTS, SLOT_META } from "@/lib/draws";
 import { fmt, getDict, lp, type Locale } from "@/lib/i18n";
 import { otherText } from "@/lib/i18n/others";

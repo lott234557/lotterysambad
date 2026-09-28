@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { CalendarDays, Clock3, Landmark, Hash, RefreshCw, ChevronLeft, ChevronRight, Ticket, TrendingUp } from "lucide-react";
 import { SLOTS, SLOT_META, drawNameFor, type Slot } from "@/lib/draws";
 import type { Result } from "@/lib/db/schema";

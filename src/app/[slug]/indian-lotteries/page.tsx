@@ -1,7 +1,7 @@
 import { IndiaView, indiaMetadata } from "@/views/india";
 import { localeFrom, type LocaleParams } from "@/lib/i18n/route";
 
-export const revalidate = 86400;
+export const revalidate = 604800; // rebuilt on demand once after midnight
 export const generateStaticParams = () => [];
 
 type P = { params: LocaleParams };

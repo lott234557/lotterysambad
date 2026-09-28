@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getSettings, siteUrl } from "@/lib/settings";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // rebuilt on demand when content changes
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const s = await getSettings();

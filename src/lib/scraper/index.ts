@@ -183,16 +183,25 @@ export async function scrapeDraw(dateISO: string, slot: Slot, opts: { force?: bo
   };
   const isComplete = isCompleteResult(row);
 
-  const changed =
+  // saved = anything new; changed = something VISIBLE changed (first prize, image, or the draw became complete).
+  // Only "changed" rebuilds pages – partial prize lists in between are saved but don't trigger a page rebuild.
+  const saved =
     !existing ||
     existing.firstPrize !== row.firstPrize ||
     existing.imageKey !== row.imageKey ||
     scoreOf(existing) !== scoreOf(row as Result);
+  const changed =
+    !existing ||
+    (existing.firstPrize ?? null) !== (row.firstPrize ?? null) ||
+    (!existing.imageKey && !!row.imageKey) ||
+    (isComplete && !existing.isComplete);
 
-  await db
-    .insert(results)
-    .values({ ...row, isComplete })
-    .onConflictDoUpdate({ target: [results.drawDate, results.slot], set: { ...row, isComplete } });
+  if (saved || isComplete !== !!existing?.isComplete) {
+    await db
+      .insert(results)
+      .values({ ...row, isComplete })
+      .onConflictDoUpdate({ target: [results.drawDate, results.slot], set: { ...row, isComplete } });
+  }
 
   if (isComplete) done.add(memoKey);
   const status = isComplete ? "success" : "partial";
@@ -202,10 +211,11 @@ export async function scrapeDraw(dateISO: string, slot: Slot, opts: { force?: bo
     slot,
     status,
     source: row.source ?? undefined,
-    message: `${tag}${changed ? "Saved" : "No change"} – 1st: ${row.firstPrize ?? "-"}, image: ${row.imageKey ? "yes" : "no"}. ${notes.join(" | ")}`,
+    message: `${tag}${changed ? "Saved + pages updated" : saved ? "Saved" : "No change"} – 1st: ${row.firstPrize ?? "-"}, image: ${row.imageKey ? "yes" : "no"}. ${notes.join(" | ")}`,
     ms,
   });
-  if (changed && !existing && settings.indexNowKey) {
+  // tell Bing/Yandex once, when the full result is in (each ping makes them re-crawl every language version)
+  if (isComplete && !existing?.isComplete && settings.indexNowKey) {
     pingIndexNow(settings.indexNowKey, [`/result/${isoToDMY(dateISO)}/${slot}`, SLOT_META[slot].path, "/"]).catch(() => {});
   }
   return { date: dateISO, slot, status, message: `1st prize ${row.firstPrize ?? "pending"}`, changed };

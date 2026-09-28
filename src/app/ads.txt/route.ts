@@ -1,6 +1,6 @@
 import { getSettings } from "@/lib/settings";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // rebuilt on demand when content changes
 
 export async function GET() {
   const s = await getSettings();

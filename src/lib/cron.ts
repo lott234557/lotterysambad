@@ -3,11 +3,11 @@ import { SLOTS, SLOT_META, type Slot } from "./draws";
 import { addDays, nowIST } from "./time";
 import { scrapeDraw, type ScrapeOutcome } from "./scraper";
 import { getSettingsFresh } from "./settings";
-import { revalidateSite } from "./revalidate";
+import { revalidateDraw, revalidateOther } from "./revalidate";
 import { lt } from "drizzle-orm";
 import { db } from "./db";
 import { scrapeLogs } from "./db/schema";
-import { autoFetch } from "./autofetch";
+import { autoFetch, ensureRollover } from "./autofetch";
 import { OTHER, OTHER_IDS, type OtherId } from "./others/config";
 import { lotteryDraws } from "./db/schema";
 import { and, eq } from "drizzle-orm";
@@ -25,8 +25,8 @@ async function pool<T>(items: T[], n: number, fn: (x: T) => Promise<void>) {
 
 /**
  * auto    – every-minute cron: fetches only inside the draw windows (same lock as visitors / dashboard)
- * sweep   – hourly safety net (Vercel daily crons, one per hour of the afternoon/evening): fetches every
- *           draw of TODAY that has been drawn but is still missing or incomplete, whatever the time
+ * sweep   – on demand only (/api/cron/sweep?key=…): fetches every draw of TODAY that has been drawn but is
+ *           still missing or incomplete, whatever the time (not scheduled – see vercel.json)
  * catchup – nightly: the same for the last N days + housekeeping
  */
 export async function runCron(mode: "auto" | "catchup" | "sweep", opts: { days?: number } = {}) {
@@ -49,6 +49,7 @@ export async function runCron(mode: "auto" | "catchup" | "sweep", opts: { days?:
   // catch-up / sweep: fill anything missing (sweep = today only, no housekeeping)
   const outcomes: ScrapeOutcome[] = [];
   const trigger = mode === "sweep" ? "sweep" : "catch-up";
+  await ensureRollover(today).catch(() => false); // the nightly catch-up also switches "today" pages to the new date
   if (mode === "catchup") await db.delete(scrapeLogs).where(lt(scrapeLogs.runAt, new Date(Date.now() - 30 * 864e5))).catch(() => {});
   const days = mode === "sweep" ? 1 : Math.min(Math.max(opts.days ?? 2, 1), 7);
   const jobs: { date: string; slot: Slot }[] = [];
@@ -100,6 +101,8 @@ export async function runCron(mode: "auto" | "catchup" | "sweep", opts: { days?:
       }
     }),
   ]);
-  if (outcomes.some((o) => o.changed) || others.some((o) => o.changed)) revalidateSite();
+  // rebuild only the pages of the dates that changed
+  for (const d of new Set(outcomes.filter((o) => o.changed).map((o) => o.date))) revalidateDraw(d, { newUrls: true });
+  for (const o of others) if (o.changed) revalidateOther(o.lottery, o.date, { newUrls: true });
   return { ok: true, idle: false, notes: [], outcomes, others };
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { ArrowRight, CalendarDays, LineChart, Ticket, CalendarClock, Sparkles, Radio, Trophy, IndianRupee, MapPinned, Globe2 } from "lucide-react";
 import { SLOTS, SLOT_META, drawNameFor } from "@/lib/draws";
 import { getLastNDays, getResultsForDate } from "@/lib/results";

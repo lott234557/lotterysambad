@@ -6,7 +6,7 @@ import { dmyToISO, longDate } from "@/lib/time";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 export const alt = "Lottery Sambad result";
-export const revalidate = 3600;
+export const revalidate = 2592000; // past dates don't change – rebuilt on demand if a result is added/edited
 export const generateStaticParams = () => [];
 
 export default async function Image({ params }: { params: Promise<{ date: string; slot: string }> }) {

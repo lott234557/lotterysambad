@@ -22,7 +22,11 @@ export type OtherDef = {
   drawMinute: number;
   /** several draws per day (Maharashtra, Punjab) */
   multi: boolean;
-  /** auto-fetch window; null = no scraper (West Bengal mirrors the Dear draws) */
+  /**
+   * Auto-fetch window (short on purpose – every fetch that finds something new rebuilds pages, which costs
+   * Vercel ISR writes). Anything still missing afterwards is filled by the nightly catch-up or "Fetch now".
+   * null = no scraper (West Bengal mirrors the Dear draws).
+   */
   window: OtherWindow | null;
 };
 
@@ -35,7 +39,7 @@ export const OTHER: Record<OtherId, OtherDef> = {
     state: "Kerala",
     drawMinute: hm(15),
     multi: false,
-    window: { from: hm(15, 2), fastTo: hm(16, 45), to: hm(18, 30), fastGap: 60, slowGap: 240 },
+    window: { from: hm(15, 5), fastTo: hm(15, 13), to: hm(15, 13), fastGap: 60, slowGap: 60 }, // 3:05–3:13 PM
   },
   punjab: {
     id: "punjab",
@@ -43,7 +47,7 @@ export const OTHER: Record<OtherId, OtherDef> = {
     state: "Punjab",
     drawMinute: hm(18, 30),
     multi: true,
-    window: { from: hm(18, 35), fastTo: hm(19, 45), to: hm(21, 45), fastGap: 90, slowGap: 300 },
+    window: { from: hm(18, 35), fastTo: hm(18, 43), to: hm(18, 43), fastGap: 60, slowGap: 60 }, // 6:35–6:43 PM
   },
   maharashtra: {
     id: "maharashtra",
@@ -51,7 +55,7 @@ export const OTHER: Record<OtherId, OtherDef> = {
     state: "Maharashtra",
     drawMinute: hm(16, 15),
     multi: true,
-    window: { from: hm(16, 20), fastTo: hm(17, 45), to: hm(19, 30), fastGap: 90, slowGap: 300 },
+    window: { from: hm(16, 20), fastTo: hm(16, 28), to: hm(16, 28), fastGap: 60, slowGap: 60 }, // 4:20–4:28 PM
   },
   westbengal: {
     id: "westbengal",

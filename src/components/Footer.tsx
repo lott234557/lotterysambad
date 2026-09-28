@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { Send, MessageCircle, ShieldCheck } from "lucide-react";
 import { FacebookIcon as Facebook, YoutubeIcon as Youtube } from "./BrandIcons";
 import { Logo } from "./Logo";

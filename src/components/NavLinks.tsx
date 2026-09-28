@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { isActive, type NavItem } from "@/lib/nav";

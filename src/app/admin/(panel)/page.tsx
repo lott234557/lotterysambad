@@ -51,7 +51,8 @@ export default async function Dashboard() {
     OTHER_IDS.map((id) => [id, { enabled: s.others[id].enabled, done: byLottery(id).length > 0 && byLottery(id).every((d) => d.isComplete) }]),
   ) as Record<OtherId, { enabled: boolean; done: boolean }>;
   const [nResults, nPosts, nPages, mediaAgg] = counts;
-  const cronUrl = `${siteUrl()}/api/cron/scrape?key=${process.env.CRON_SECRET ?? "SET_CRON_SECRET"}`;
+  const cronSecret = (process.env.CRON_SECRET ?? "").trim();
+  const cronUrl = `${siteUrl()}/api/cron/scrape?key=${encodeURIComponent(cronSecret)}`;
   return (
     <>
       <PageHeader
@@ -149,9 +150,20 @@ export default async function Dashboard() {
         <div id="cron" className="scroll-mt-24">
           <Panel
             title="Every-minute cron – recommended (free, 2 minutes)"
-            desc="Vercel's free plan cannot run a job every minute, so without this the results are fetched while someone has the site open, plus once an hour by the built-in safety sweep. With it, every result is fetched within ~1 minute even when nobody is online."
+            desc="Vercel's free plan cannot run a job every minute, so without this the results are fetched only while someone has the site open, plus the nightly catch-up. With it, every result is fetched inside its window even when nobody is online."
           >
-            <CopyField value={cronUrl} secret />
+            {cronSecret ? (
+              <CopyField value={cronUrl} secret />
+            ) : (
+              <div className="rounded-xl border border-live/40 bg-live/10 p-3 text-xs leading-relaxed">
+                <b className="text-live">CRON_SECRET is missing or empty on this deployment</b>, so there is no key for the URL yet.
+                <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted">
+                  <li>Vercel → your project → <b>Settings → Environment Variables</b> → add or edit <code>CRON_SECRET</code>.</li>
+                  <li>Value: a long random text of letters and numbers only (30+ characters). Tick <b>Production</b> (and Preview). Save.</li>
+                  <li><b>Deployments</b> → latest → <b>⋯ → Redeploy</b> (new values only apply after a redeploy), then reload this page.</li>
+                </ol>
+              </div>
+            )}
             <ol className="mt-4 list-decimal space-y-1.5 pl-5 text-xs text-muted">
               <li>Sign up free at <a href="https://cron-job.org" target="_blank" rel="noreferrer" className="font-bold text-brand-2 underline">cron-job.org</a> → <b>Dashboard → Create cronjob</b>.</li>
               <li>Title: <b>Lottery auto-fetch</b>. URL: press <b>Copy</b> above and paste it.</li>
@@ -160,8 +172,9 @@ export default async function Dashboard() {
             </ol>
             <ul className="mt-4 space-y-1.5 border-t border-line pt-3 text-xs text-muted">
               <li>• Outside the draw windows a call does nothing (no database use), so it is safe to run all day.</li>
-              <li>• Windows (IST): 1:01–1:20 PM, 6:01–6:20 PM, 8:01–8:20 PM every 25 s, then every 2 min until complete; Kerala, Maharashtra and Punjab have their own windows.</li>
-              <li>• Built in, no setup: hourly safety sweep 12:30 PM–11:30 PM IST (<code>/api/cron/sweep</code>) and a nightly catch-up of the last 2 days.</li>
+              <li>• Windows (IST): 1:05–1:13 PM, 6:05–6:13 PM, 8:00–8:12 PM (every 25 s); Kerala 3:05–3:13 PM, Maharashtra 4:20–4:28 PM, Punjab 6:35–6:43 PM (every 60 s).</li>
+              <li>• A draw still incomplete after its window: press <b>Fetch now</b>, or the nightly catch-up (~12:10–1:10 AM IST) fills it.</li>
+              <li>• Pages are rebuilt only when the first prize, the image or the full result arrives, and only the pages that show it (keeps Vercel ISR writes low).</li>
               <li>• Each run is logged under <Link href="/admin/logs" className="text-brand-2 underline">Scraper Logs</Link>.</li>
             </ul>
           </Panel>

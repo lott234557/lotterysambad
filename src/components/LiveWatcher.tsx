@@ -3,10 +3,12 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { istToEpoch, nowIST } from "@/lib/time";
 import { SLOT_META, type Slot } from "@/lib/draws";
+import { WINDOWS } from "@/lib/windows";
 
 /**
  * Keeps "live" pages fresh without a manual reload:
- *  - While a draw of `date` is due but not yet shown, polls the (CDN-cached) status API every 20 s.
+ *  - During a draw's short auto-fetch window, while its result is not complete, polls the (CDN-cached)
+ *    status API every 20 s.
  *    Each poll also wakes the server's built-in auto-fetch, so the result is fetched even without a cron job.
  *    As soon as the status changes the page refreshes itself.
  *  - After midnight (IST) a page rendered for yesterday asks the server to clear its cache and reloads
@@ -39,16 +41,17 @@ export function LiveWatcher({ date, have }: { date: string; have: Partial<Record
   useEffect(() => {
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
-    const watched = (Object.keys(SLOT_META) as Slot[]).filter((s) => {
-      const at = istToEpoch(date, SLOT_META[s].hour, SLOT_META[s].minute);
-      return haveRef.current[s] !== "complete" && Date.now() < at + 3 * 3600_000;
-    });
+    // only poll during a draw's auto-fetch window (+3 min to pick up the last save) – see src/lib/windows.ts
+    const from = (s: Slot) => istToEpoch(date, Math.floor(WINDOWS[s].from / 60), WINDOWS[s].from % 60);
+    const until = (s: Slot) => istToEpoch(date, Math.floor(WINDOWS[s].to / 60), WINDOWS[s].to % 60) + 4 * 60_000;
+    const watched = (Object.keys(SLOT_META) as Slot[]).filter((s) => haveRef.current[s] !== "complete" && Date.now() < until(s));
     if (!watched.length) return;
 
     const tick = async () => {
       if (stopped) return;
       const now = Date.now();
-      const due = watched.filter((s) => now >= istToEpoch(date, SLOT_META[s].hour, SLOT_META[s].minute) + 60_000 && haveRef.current[s] !== "complete");
+      if (watched.every((s) => now >= until(s))) return; // all windows over – stop
+      const due = watched.filter((s) => now >= from(s) && now < until(s) && haveRef.current[s] !== "complete");
       if (due.length && document.visibilityState === "visible") {
         try {
           const r = await fetch(`/api/status?date=${date}`, { cache: "no-store" });

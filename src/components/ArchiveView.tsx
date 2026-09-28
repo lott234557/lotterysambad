@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { getArchiveMonths, getMonth } from "@/lib/results";
 import { todayIST } from "@/lib/time";
 import { fmt, getDict, lp, monthLabelL, type Locale } from "@/lib/i18n";

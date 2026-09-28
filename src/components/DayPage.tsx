@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SLOTS } from "@/lib/draws";
 import { getNeighbours, getResultsForDate } from "@/lib/results";

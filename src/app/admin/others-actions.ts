@@ -6,7 +6,7 @@ import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { lotteryDraws, type DrawTier } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/auth";
-import { revalidateSite } from "@/lib/revalidate";
+import { revalidateOther } from "@/lib/revalidate";
 import { isValidISO, isoToDMY } from "@/lib/time";
 import { toWebp } from "@/lib/image";
 import { saveMedia, deleteMedia } from "@/lib/storage";
@@ -26,7 +26,7 @@ export async function scrapeOtherAction(id: string, date: string): Promise<Other
   if (!isOtherId(id) || !isValidISO(date)) return { error: "Bad lottery or date" };
   try {
     const out = await scrapeOther(id, date, { force: true, trigger: "manual" });
-    revalidateSite();
+    revalidateOther(id, date, { newUrls: true });
     return out;
   } catch (e) {
     return { error: (e as Error).message };
@@ -171,7 +171,8 @@ export async function saveOtherDrawAction(_: ActionState, f: FormData): Promise<
         .returning({ id: lotteryDraws.id });
       savedId = ins[0].id;
     }
-    revalidateSite();
+    revalidateOther(lottery as OtherId, drawDate, { newUrls: !existing });
+    if (existing && existing.drawDate !== drawDate && isOtherId(existing.lottery)) revalidateOther(existing.lottery, existing.drawDate);
     if (!existing) redirect(`/admin/lotteries/${savedId}?saved=1`);
     return { ok: true, message: "Draw saved.", url: `${OTHER[lottery as OtherId].path}/${isoToDMY(drawDate)}` };
   } catch (e) {
@@ -187,7 +188,7 @@ export async function deleteOtherDrawAction(f: FormData) {
   if (r) {
     await db.delete(lotteryDraws).where(eq(lotteryDraws.id, id));
     if (r.imageKey) await deleteMedia(r.imageKey).catch(() => {});
-    revalidateSite();
+    if (isOtherId(r.lottery)) revalidateOther(r.lottery, r.drawDate, { newUrls: true });
   }
   redirect(`/admin/lotteries?l=${r?.lottery ?? "kerala"}`);
 }

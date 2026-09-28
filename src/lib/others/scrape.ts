@@ -315,16 +315,18 @@ export async function scrapeOther(id: OtherId, dateISO: string, opts: { force?: 
       publishedAt: ex?.publishedAt ?? new Date(),
       updatedAt: new Date(),
     };
-    const changed = !ex || ex.firstPrize !== row.firstPrize || ex.imageKey !== row.imageKey || score(ex.tiers) !== score(row.tiers) || ex.isComplete !== isComplete;
-    if (changed) {
+    const saved = !ex || ex.firstPrize !== row.firstPrize || ex.imageKey !== row.imageKey || score(ex.tiers) !== score(row.tiers) || ex.isComplete !== isComplete;
+    // only visible milestones rebuild pages (new draw, first prize, image, complete) – see src/lib/revalidate.ts
+    const changed = !ex || (ex.firstPrize ?? null) !== (row.firstPrize ?? null) || (!ex.imageKey && !!row.imageKey) || (!ex.isComplete && isComplete);
+    if (saved) {
       await db
         .insert(lotteryDraws)
         .values(row)
         .onConflictDoUpdate({ target: [lotteryDraws.lottery, lotteryDraws.drawDate, lotteryDraws.drawKey], set: row });
-      changedAny = true;
     }
+    if (changed) changedAny = true;
     if (isComplete) complete++;
-    lines.push(`${row.drawName}: 1st ${row.firstPrize ?? "-"}, ${tiers.length} tiers${imageKey ? ", image" : ""}${changed ? " (saved)" : ""}`);
+    lines.push(`${row.drawName}: 1st ${row.firstPrize ?? "-"}, ${tiers.length} tiers${imageKey ? ", image" : ""}${changed ? " (saved, pages updated)" : saved ? " (saved)" : ""}`);
   }
 
   const status = complete === groups.size ? "success" : "partial";

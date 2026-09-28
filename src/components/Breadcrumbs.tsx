@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { ChevronRight } from "lucide-react";
 import { JsonLd } from "./JsonLd";
 import { siteUrl } from "@/lib/settings";

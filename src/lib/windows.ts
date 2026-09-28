@@ -1,39 +1,42 @@
-/** Auto-fetch windows (shared by server and the admin dashboard). Minutes are relative to the draw time. */
-import { SLOTS, SLOT_META, type Slot } from "./draws";
+/**
+ * Auto-fetch windows for Lottery Sambad (shared by server, pages and the admin dashboard). IST.
+ *
+ * Kept short on purpose: every fetch that finds something new rebuilds pages, and page rebuilds are what
+ * Vercel counts as "ISR Writes". Outside these windows nothing is fetched automatically; a draw that is
+ * still incomplete afterwards is filled by the nightly catch-up or by "Fetch now" in the dashboard.
+ * Kerala / Maharashtra / Punjab windows are in src/lib/others/config.ts.
+ */
+import { SLOTS, type Slot } from "./draws";
 
-export const FAST_FROM = 1; // 1:01 PM, 6:01 PM, 8:01 PM
-export const FAST_TO = 20; // … until 1:20 / 6:20 / 8:20 – one fetch every 25 s
-export const SLOW_TO = 150; // then every 2 min while still incomplete, up to 2.5 h after the draw
+const hm = (h: number, m = 0) => h * 60 + m;
+
+/** [from, to] minutes after midnight IST, both inclusive. */
+export const WINDOWS: Record<Slot, { from: number; to: number }> = {
+  "1pm": { from: hm(13, 5), to: hm(13, 13) }, // 1:05–1:13 PM
+  "6pm": { from: hm(18, 5), to: hm(18, 13) }, // 6:05–6:13 PM
+  "8pm": { from: hm(20, 0), to: hm(20, 12) }, // 8:00–8:12 PM
+};
+
+/** Seconds between two fetches of the same draw inside its window. */
 export const FAST_GAP_S = 25;
-export const SLOW_GAP_S = 120;
 
-export type DueSlot = { slot: Slot; gap: number; phase: "fast" | "slow" };
+export type DueSlot = { slot: Slot; gap: number; phase: "fast" };
 
-const drawMinute = (slot: Slot) => SLOT_META[slot].hour * 60 + SLOT_META[slot].minute;
-
-/** Draws that are inside a fetch window at `minuteOfDay` (IST). */
+/** Draws whose window is open at `minuteOfDay` (IST). */
 export function dueSlots(minuteOfDay: number): DueSlot[] {
-  const out: DueSlot[] = [];
-  for (const slot of SLOTS) {
-    const d = minuteOfDay - drawMinute(slot);
-    if (d >= FAST_FROM && d <= FAST_TO) out.push({ slot, gap: FAST_GAP_S, phase: "fast" });
-    else if (d > FAST_TO && d <= SLOW_TO) out.push({ slot, gap: SLOW_GAP_S, phase: "slow" });
-  }
-  return out;
+  return SLOTS.filter((s) => minuteOfDay >= WINDOWS[s].from && minuteOfDay <= WINDOWS[s].to).map((slot) => ({ slot, gap: FAST_GAP_S, phase: "fast" as const }));
 }
 
-/** Next window start after `minuteOfDay` today, or null after the last draw. */
+/** Next window start after `minuteOfDay` today, or null after the last one. */
 export function nextWindow(minuteOfDay: number): { slot: Slot; startsAtMinute: number } | null {
-  for (const slot of SLOTS) {
-    const start = drawMinute(slot) + FAST_FROM;
-    if (start > minuteOfDay) return { slot, startsAtMinute: start };
-  }
+  for (const slot of SLOTS) if (WINDOWS[slot].from > minuteOfDay) return { slot, startsAtMinute: WINDOWS[slot].from };
   return null;
 }
 
-/** "1:01–1:20 PM" */
+const clock = (x: number) => `${Math.floor(x / 60) % 12 || 12}:${String(x % 60).padStart(2, "0")}`;
+
+/** "1:05–1:13 PM" */
 export function windowLabel(slot: Slot) {
-  const m = drawMinute(slot);
-  const f = (x: number) => `${Math.floor(x / 60) % 12 || 12}:${String(x % 60).padStart(2, "0")}`;
-  return `${f(m + FAST_FROM)}–${f(m + FAST_TO)} ${Math.floor(m / 60) < 12 ? "AM" : "PM"}`;
+  const w = WINDOWS[slot];
+  return `${clock(w.from)}–${clock(w.to)} ${Math.floor(w.from / 60) < 12 ? "AM" : "PM"}`;
 }

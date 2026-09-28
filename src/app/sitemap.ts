@@ -8,9 +8,12 @@ import { HREFLANG, LOCALES, lp } from "@/lib/i18n/config";
 import { OTHER, OTHER_IDS, isOtherId } from "@/lib/others/config";
 import { getOtherDateKeys } from "@/lib/others/data";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // rebuilt on demand when content changes
 
 type Entry = MetadataRoute.Sitemap[number];
+
+/** lastmod for pages whose text only changes with a new release (guides, tools, comparison). */
+const STATIC_PAGES_UPDATED = new Date("2026-09-28T00:00:00Z");
 
 /**
  * Always a real Date, so every <lastmod> is written in W3C/ISO format (2026-09-27T10:35:44.668Z).
@@ -28,7 +31,8 @@ function toDate(v: unknown, fallback: Date): Date {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
-  const now = new Date();
+  // No "new Date()" here: an unchanged sitemap must render byte-identical, otherwise every rebuild costs ISR writes.
+  const now = STATIC_PAGES_UPDATED;
   const today = todayIST();
   const [results, pages, posts, otherKeys] = await Promise.all([getAllResultKeys(), getAllPages(), getPublishedPosts(1000), getOtherDateKeys()]);
   const latest = toDate(results[0]?.updatedAt, now);

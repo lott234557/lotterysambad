@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Zap, ZapOff, Radio, Clock3, CheckCircle2, AlertTriangle, Users, Timer, ShieldCheck } from "lucide-react";
 import { autoFetchTickAction, setAutoFetchAction } from "@/app/admin/actions";
 import { SLOTS, SLOT_META, type Slot } from "@/lib/draws";
-import { dueSlots, nextWindow, windowLabel, FAST_GAP_S, SLOW_GAP_S } from "@/lib/windows";
+import { dueSlots, nextWindow, windowLabel, FAST_GAP_S } from "@/lib/windows";
 import { nowIST } from "@/lib/time";
 import { useNow } from "@/lib/useNow";
 import { OTHER, OTHER_IDS, clockLabel, windowPhase, type OtherId } from "@/lib/others/config";
@@ -16,7 +16,7 @@ const TICK_MS = 20_000;
 export type TriggerHealth = {
   /** last call of the every-minute cron (cron-job.org) seen during a draw window */
   cron: string | null;
-  /** last run of the hourly Vercel safety sweep */
+  /** last run of the nightly Vercel catch-up */
   vercel: string | null;
   /** most recent automatic fetch: which draw, when, and who triggered it (visitor / admin / cron) */
   last: { what: string; at: string; by: string } | null;
@@ -123,12 +123,12 @@ export function AutoFetchPanel({
           <b>Fetching now:</b>
           {due.map((d) => (
             <span key={d.slot} className="pill bg-live/10 text-live">
-              {SLOT_META[d.slot].label} · every {d.phase === "fast" ? `${FAST_GAP_S}s` : `${SLOW_GAP_S / 60} min`}
+              {SLOT_META[d.slot].label} · every {FAST_GAP_S}s
             </span>
           ))}
           {dueO.map((d) => (
             <span key={d.id} className="pill bg-live/10 text-live">
-              {ONAME[d.id]} · every {d.phase === "fast" ? `${OTHER[d.id].window!.fastGap}s` : `${Math.round(OTHER[d.id].window!.slowGap / 60)} min`}
+              {ONAME[d.id]} · every {OTHER[d.id].window!.fastGap}s
             </span>
           ))}
         </span>
@@ -178,7 +178,6 @@ export function AutoFetchPanel({
             {complete[s] ? <CheckCircle2 className="size-3.5" /> : <Radio className="size-3.5" />} {windowLabel(s)}
           </span>
         ))}
-        <span className="pill bg-surface-2 text-muted">then every 2 min until complete</span>
         {OTHER_IDS.filter((id) => OTHER[id].window).map((id) => (
           <span key={id} className={`pill ${others[id].done ? "bg-ok/10 text-ok" : others[id].enabled ? "bg-surface-2 text-muted" : "bg-live/10 text-live line-through"}`}>
             {others[id].done ? <CheckCircle2 className="size-3.5" /> : <Radio className="size-3.5" />} {ONAME[id]} {clockLabel(OTHER[id].window!.from)}–{clockLabel(OTHER[id].window!.to)}
@@ -232,7 +231,7 @@ function Triggers({ health, nowMs, today, inWindow }: { health: TriggerHealth; n
       tone: "bad",
       text: (
         <>
-          <b>Not set up</b> – when nobody is on the site, results wait for the hourly sweep.{" "}
+          <b>Not set up</b> – when nobody is on the site, results wait for the nightly catch-up.{" "}
           <a href="#cron" className="font-bold text-brand-2 underline">Set it up (2 min)</a>
         </>
       ),
@@ -252,9 +251,9 @@ function Triggers({ health, nowMs, today, inWindow }: { health: TriggerHealth; n
 
   rows.push({
     Icon: ShieldCheck,
-    name: "Hourly safety sweep",
+    name: "Nightly catch-up",
     tone: health.vercel ? "ok" : "muted",
-    text: health.vercel ? <>Built in · last run {istTime(health.vercel, today)}</> : <>Built in · runs every hour 12:30 PM–11:30 PM IST (first run after this update is deployed)</>,
+    text: health.vercel ? <>Built in · last run {istTime(health.vercel, today)}</> : <>Built in · runs once a night (~12:10–1:10 AM IST) and fills anything still missing</>,
   });
 
   const toneCls = { ok: "text-ok", warn: "text-gold-2", bad: "text-live", muted: "text-muted" };

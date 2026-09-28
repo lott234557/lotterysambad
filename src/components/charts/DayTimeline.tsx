@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { ChartTips } from "./ChartTips";
 import { Legend, SERIES_BG, TableView } from "./parts";
 

@@ -1,7 +1,7 @@
 import { NextResponse, after, type NextRequest } from "next/server";
 import { runCron } from "@/lib/cron";
 import { scrapeDraw } from "@/lib/scraper";
-import { revalidateSite } from "@/lib/revalidate";
+import { revalidateDraw } from "@/lib/revalidate";
 import { isSlot } from "@/lib/draws";
 import { dmyToISO, isValidISO, nowIST } from "@/lib/time";
 import { cronAuthorized } from "@/lib/cronAuth";
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       const slot = sp.get("slot") ?? "";
       if (!date || !isSlot(slot)) return NextResponse.json({ ok: false, error: "bad date/slot" }, { status: 400 });
       const outcome = await scrapeDraw(date, slot, { force: true, trigger: "cron:force" });
-      if (outcome.changed) revalidateSite();
+      revalidateDraw(date);
       return NextResponse.json({ ok: true, outcome }, { headers: noStore });
     }
     if (mode === "catchup" || mode === "sweep") {

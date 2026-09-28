@@ -1,6 +1,6 @@
 import { DatePage, dateMetadata, type DateParams } from "@/views/day";
 
-export const revalidate = 86400;
+export const revalidate = 2592000; // past dates don't change – rebuilt on demand if a result is added/edited
 export const generateStaticParams = () => [];
 
 type P = { params: DateParams };

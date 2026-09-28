@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { getLastNDays } from "@/lib/results";
 import { getSettings } from "@/lib/settings";
 import { todayIST, weekdayOf } from "@/lib/time";

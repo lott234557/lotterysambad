@@ -41,7 +41,7 @@ export default async function SettingsPage() {
         <SettingsForm section="results">
           <Panel title="Scraper">
             <div className="space-y-4">
-              <Toggle name="scraperEnabled" defaultChecked={s.scraperEnabled} label="Auto-fetch results" hint="Fetches each draw automatically (1:01–1:20, 6:01–6:20, 8:01–8:20 PM, then every 2 min until complete), clears the cache and refreshes open pages. Turn off to fetch only with the “Fetch now” buttons." />
+              <Toggle name="scraperEnabled" defaultChecked={s.scraperEnabled} label="Auto-fetch results" hint="Fetches each draw automatically only inside short windows (1:05–1:13, 6:05–6:13, 8:00–8:12 PM; Kerala 3:05–3:13, Maharashtra 4:20–4:28, Punjab 6:35–6:43 PM) and rebuilds only the pages that show the new result. Turn off to fetch only with the “Fetch now” buttons." />
               <Toggle name="showImageCredit" defaultChecked={s.showImageCredit} label="Show image source under result images" hint="Displays the source domain as plain text." />
             </div>
           </Panel>

@@ -6,22 +6,21 @@ import { dueSlots, type DueSlot } from "./windows";
 import { nowIST } from "./time";
 import { getSettingsFresh } from "./settings";
 import { scrapeDraw, type ScrapeOutcome } from "./scraper";
-import { revalidateSite } from "./revalidate";
+import { revalidateDraw, revalidateNewDay, revalidateOther } from "./revalidate";
 import { lotteryDraws } from "./db/schema";
 import { OTHER, OTHER_IDS, windowPhase, type OtherId } from "./others/config";
 import { scrapeOther, type OtherOutcome } from "./others/scrape";
 
 /**
- * Built-in automatic result fetching.
+ * Built-in automatic result fetching – only inside short windows after each draw (src/lib/windows.ts and
+ * src/lib/others/config.ts), e.g. 1:05–1:13, 6:05–6:13, 8:00–8:12 PM IST.
  *
- * Runs from three places and they all share one database lock, so a draw is never fetched twice at once:
- *  - visitors: pages waiting for a result poll /api/status, which calls this in the background
- *  - admin:    the dashboard calls it every 20 s while it is open
- *  - cron:     /api/cron/scrape (e.g. cron-job.org every minute) – optional, makes it independent of visitors
+ * Triggered by the every-minute cron (cron-job.org), visitors waiting on a result page and the open admin
+ * dashboard. All share one database lock, so a draw is never fetched twice at once. Outside the windows a call
+ * returns at once without touching the database.
  *
- * Fast window: draw time +1 → +20 min (1:01–1:20, 6:01–6:20, 8:01–8:20) → at most one fetch every 25 s.
- * Slow window: until +150 min, only while the draw is still incomplete → one fetch every 2 min.
- * After every saved change all pages are revalidated (cache cleared) so visitors see the result at once.
+ * Pages are rebuilt only when something visible changes (first prize, image, complete) and only the pages that
+ * show that draw – every rebuild costs Vercel ISR writes.
  */
 export type Trigger = "visitor" | "admin" | "cron";
 
@@ -71,7 +70,7 @@ export async function ensureRollover(today: string): Promise<boolean> {
     returning key`;
   rolledFor = today;
   if (rows.length > 0) {
-    revalidateSite();
+    revalidateNewDay();
     return true;
   }
   return false;
@@ -206,6 +205,8 @@ export async function autoFetch(trigger: Trigger): Promise<AutoFetchResult> {
   }
   await Promise.all(jobs.map((j) => j.run()));
 
-  if (res.ran.some((o) => o.changed) || res.others.some((o) => o.changed)) revalidateSite();
+  // rebuild only the pages that show the changed draws
+  if (res.ran.some((o) => o.changed)) revalidateDraw(today, { newUrls: true });
+  for (const o of res.others) if (o.changed) revalidateOther(o.lottery, today, { newUrls: true });
   return res;
 }

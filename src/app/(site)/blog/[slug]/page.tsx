@@ -7,7 +7,7 @@ import { plainExcerpt } from "@/lib/markdown";
 import { Article } from "@/components/Article";
 import { JsonLd } from "@/components/JsonLd";
 
-export const revalidate = 86400;
+export const revalidate = 2592000; // past dates don't change – rebuilt on demand if a result is added/edited
 export function generateStaticParams() {
   return [];
 }

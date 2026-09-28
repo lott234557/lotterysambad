@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { ShieldAlert, Printer, Landmark } from "lucide-react";
 import { KERALA_BUMPERS, KERALA_WEEKLY, LOTTERIES } from "@/lib/lotteries";
 import { todayIST, weekdayOf } from "@/lib/time";

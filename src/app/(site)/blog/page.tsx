@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { getPublishedPosts } from "@/lib/pages";
 import { getSettings, siteUrl } from "@/lib/settings";
 import { formatIST } from "@/lib/time";
 import { PageHero } from "@/components/PageHero";
 import { ArrowRight, Newspaper } from "lucide-react";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // safety net only – pages are rebuilt on demand when a result arrives and once after midnight (src/lib/revalidate.ts)
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 
 export function LogoMark({ className = "size-9" }: { className?: string }) {
   return (

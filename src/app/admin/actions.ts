@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { results, posts, pages, scrapeLogs, media } from "@/lib/db/schema";
 import { checkCredentials, createSession, destroySession, requireAdmin } from "@/lib/auth";
 import { scrapeDraw, isCompleteResult, type ScrapeOutcome } from "@/lib/scraper";
-import { revalidateSite } from "@/lib/revalidate";
+import { revalidateBlog, revalidateDraw, revalidateSite } from "@/lib/revalidate";
 import { SLOTS, isSlot, normalizeTicket, SLOT_META, drawNameFor, type Slot } from "@/lib/draws";
 import { isValidISO, isoToDMY } from "@/lib/time";
 import { toWebp } from "@/lib/image";
@@ -64,7 +64,7 @@ export async function scrapeNowAction(date: string, slot: string): Promise<Scrap
   await requireAdmin();
   if (!isValidISO(date) || !isSlot(slot)) return { error: "Bad date or slot" };
   const out = await scrapeDraw(date, slot, { force: true, trigger: "manual" });
-  revalidateSite();
+  revalidateDraw(date, { newUrls: true });
   return out;
 }
 
@@ -104,7 +104,7 @@ export async function backfillDateAction(date: string): Promise<{ date: string; 
       outcomes.push({ date, slot, status: "error", message: (e as Error).message, changed: false });
     }
   }
-  if (outcomes.some((o) => o.changed)) revalidateSite();
+  if (outcomes.some((o) => o.changed)) revalidateDraw(date, { newUrls: true });
   return { date, outcomes };
 }
 
@@ -198,7 +198,8 @@ export async function saveResultAction(_: ActionState, f: FormData): Promise<Act
         .returning({ id: results.id });
       savedId = ins[0].id;
     }
-    revalidateSite();
+    revalidateDraw(row.drawDate, { newUrls: !existing });
+    if (existing && existing.drawDate !== row.drawDate) revalidateDraw(existing.drawDate);
     if (!existing) redirect(`/admin/results/${savedId}?saved=1`);
     return { ok: true, message: "Result saved." };
   } catch (e) {
@@ -214,7 +215,7 @@ export async function deleteResultAction(f: FormData) {
   if (r) {
     await db.delete(results).where(eq(results.id, id));
     if (r.imageKey) await deleteMedia(r.imageKey);
-    revalidateSite();
+    revalidateDraw(r.drawDate, { newUrls: true });
   }
   redirect("/admin/results");
 }
@@ -263,7 +264,8 @@ export async function savePostAction(_: ActionState, f: FormData): Promise<Actio
     let newId = id;
     if (existing) await db.update(posts).set(values).where(eq(posts.id, existing.id));
     else newId = (await db.insert(posts).values(values).returning({ id: posts.id }))[0].id;
-    revalidateSite();
+    revalidateBlog(slug);
+    if (existing && existing.slug !== slug) revalidateBlog(existing.slug);
     if (!existing) redirect(`/admin/articles/${newId}?saved=1`);
     return { ok: true, message: "Article saved.", url: `/blog/${slug}` };
   } catch (e) {
@@ -274,8 +276,9 @@ export async function savePostAction(_: ActionState, f: FormData): Promise<Actio
 
 export async function deletePostAction(f: FormData) {
   await requireAdmin();
+  const gone = (await db.select({ slug: posts.slug }).from(posts).where(eq(posts.id, Number(f.get("id")))).limit(1))[0];
   await db.delete(posts).where(eq(posts.id, Number(f.get("id"))));
-  revalidateSite();
+  revalidateBlog(gone?.slug);
   redirect("/admin/articles");
 }
 
@@ -413,7 +416,9 @@ export async function saveSettingsAction(_: ActionState, f: FormData): Promise<A
       return { error: "Unknown section" };
     }
     await saveSettings(patch);
-    revalidateSite();
+    // the scraper on/off switch alone doesn't change any page – don't rebuild the whole site for it
+    const pageFields = (x: Partial<typeof cur>) => JSON.stringify([x.prizes, x.schedule, x.showImageCredit]);
+    if (section !== "results" || pageFields(patch) !== pageFields(cur)) revalidateSite();
     return { ok: true, message: "Settings saved." };
   } catch (e) {
     return { error: (e as Error).message };

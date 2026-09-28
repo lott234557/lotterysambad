@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { Ticket } from "lucide-react";
 import { Logo } from "./Logo";
 import { NavLinks } from "./NavLinks";

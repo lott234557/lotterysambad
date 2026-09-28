@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { Fragment } from "react";
 import { lp, type Locale } from "@/lib/i18n/config";
 

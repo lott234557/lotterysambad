@@ -1,6 +1,6 @@
 import { OtherDatePage, otherDateMetadata, type OtherDateParams } from "@/views/others";
 
-export const revalidate = 86400;
+export const revalidate = 2592000; // past dates don't change – rebuilt on demand if a result is added/edited
 export const generateStaticParams = () => [];
 
 type P = { params: OtherDateParams };

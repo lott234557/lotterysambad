@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { LogoMark } from "@/components/Logo";
 
 export default function NotFound() {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { notFound, permanentRedirect } from "next/navigation";
 import { CalendarDays, Clock3, Landmark, ChevronLeft, ChevronRight, ArrowRight, Trophy } from "lucide-react";
 import { OTHER, OTHER_IDS, clockLabel, type OtherId } from "@/lib/others/config";
@@ -383,7 +383,7 @@ export async function OtherLivePage({ lang, id }: { lang: Locale; id: OtherId })
         <Sidebar lang={lang} id={id} />
       </div>
 
-      {def.window && <OtherLiveWatcher lottery={id} date={today} fp={drawsFingerprint(draws)} from={def.window.from} to={def.window.to} complete={complete && !def.multi} />}
+      {def.window && <OtherLiveWatcher lottery={id} date={today} fp={drawsFingerprint(draws)} from={def.window.from} to={def.window.to + 4} complete={complete && !def.multi} />}
     </>
   );
 }
